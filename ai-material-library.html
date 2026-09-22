@@ -248,6 +248,22 @@
     opacity: 0.3;
   }
 
+  .card-video-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+  }
+
+  .thumb-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+  }
+
   .card-type-badge {
     position: absolute;
     top: 10px; right: 10px;
@@ -680,7 +696,7 @@
       </div>
       <div class="guide-item">
         <h4>添加新素材</h4>
-        <p>联系素材库管理员（肖雨茵），提供素材文件、名称、所属分类和产品，由管理员统一添加到素材库中。</p>
+        <p>将视频文件按素材ID命名（如 <code>bg-001.mp4</code>），通过 GitHub 仓库上传即可。网页会自动匹配文件并显示视频首帧作为封面，无需手动填写链接。联系管理员（肖雨茵）添加新素材条目。</p>
       </div>
       <div class="guide-item">
         <h4>自定义标签</h4>
@@ -1114,6 +1130,12 @@ const materials = [
 ];
 
 // ============================================================
+//  文件托管基础路径 — 视频文件上传到GitHub仓库后，自动按ID匹配
+//  规则：上传文件名 = 素材ID + .mp4（如 bg-001.mp4 对应 id:"bg-001"）
+// ============================================================
+const FILE_BASE = 'https://xiaoyuyin0219.github.io/yuyin-materials/';
+
+// ============================================================
 //  应用状态
 // ============================================================
 let currentCategory = 'all';
@@ -1206,9 +1228,19 @@ function renderGrid() {
     const catName = cat ? cat.name : m.category;
     const prodName = prod ? prod.name : m.product;
 
-    const thumbHtml = m.thumbnail
-      ? `<img src="${m.thumbnail}" alt="${m.title}" loading="lazy">`
-      : `<div class="placeholder">${m.type === 'video' ? '&#127909;' : '&#128247;'}</div>`;
+    // 自动按ID生成文件链接（视频=.mp4，图片=.jpg/.png）
+    const autoFileUrl = m.fileUrl || (m.type === 'video' ? FILE_BASE + m.id + '.mp4' : FILE_BASE + m.id + '.jpg');
+    const hasFile = m.fileUrl || true; // 文件可能存在也可能不存在，用onerror检测
+
+    // 缩略图：有自定义thumbnail用图片，视频用首帧，图片用占位符
+    let thumbHtml;
+    if (m.thumbnail) {
+      thumbHtml = `<img src="${m.thumbnail}" alt="${m.title}" loading="lazy">`;
+    } else if (m.type === 'video') {
+      thumbHtml = `<video class="card-video-thumb" src="${FILE_BASE}${m.id}.mp4" preload="auto" muted playsinline onloadeddata="this.currentTime=0" onerror="this.style.display='none';this.parentElement.querySelector('.thumb-fallback').style.display='flex'"></video><div class="thumb-fallback" style="display:none"><div class="placeholder">&#127909;</div></div>`;
+    } else {
+      thumbHtml = `<img src="${FILE_BASE}${m.id}.jpg" alt="${m.title}" loading="lazy" onerror="this.style.display='none';this.parentElement.querySelector('.thumb-fallback').style.display='flex'"><div class="thumb-fallback" style="display:none"><div class="placeholder">&#128247;</div></div>`;
+    }
     const playIcon = m.type === 'video' ? '<div class="card-play-icon"></div>' : '';
 
     return `<div class="card" style="animation-delay:${i * 0.04}s">
@@ -1225,7 +1257,7 @@ function renderGrid() {
         </div>
         ${m.tags && m.tags.length ? `<div class="card-tags">${m.tags.map(t => `<span class="card-tag">${t}</span>`).join('')}</div>` : ''}
         <div class="card-actions">
-          ${m.fileUrl ? `<a class="card-action-btn" href="${m.fileUrl}" download target="_blank">&#11015; 下载</a>` : '<span class="card-action-btn" style="opacity:0.4;cursor:default;">&#11015; 暂无文件</span>'}
+          <a class="card-action-btn" href="${autoFileUrl}" download target="_blank" onerror="this.style.opacity=0.4">&#11015; 下载</a>
           <button class="card-action-btn" onclick="copyMaterialLink('${m.id}', this)">&#128279; 复制链接</button>
         </div>
       </div>
@@ -1327,13 +1359,14 @@ function openModal(id) {
 
   document.getElementById('modalTitle').textContent = m.title;
 
-  // Media preview
+  // Media preview — 自动按ID匹配文件
   const mediaEl = document.getElementById('modalMedia');
-  if (m.fileUrl) {
+  const fileUrl = m.fileUrl || (m.type === 'video' ? FILE_BASE + m.id + '.mp4' : FILE_BASE + m.id + '.jpg');
+  if (fileUrl) {
     if (m.type === 'video') {
-      mediaEl.innerHTML = `<video src="${m.fileUrl}" controls autoplay></video>`;
+      mediaEl.innerHTML = `<video src="${fileUrl}" controls autoplay></video>`;
     } else {
-      mediaEl.innerHTML = `<img src="${m.fileUrl}" alt="${m.title}">`;
+      mediaEl.innerHTML = `<img src="${fileUrl}" alt="${m.title}">`;
     }
   } else {
     mediaEl.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-muted);font-size:14px;">
@@ -1362,7 +1395,7 @@ function openModal(id) {
   // Actions
   const actionsEl = document.getElementById('modalActions');
   actionsEl.innerHTML = `
-    ${m.fileUrl ? `<a class="modal-btn primary" href="${m.fileUrl}" download target="_blank">&#11015; 下载素材</a>` : '<span class="modal-btn primary" style="opacity:0.4;cursor:default;">暂无文件</span>'}
+    <a class="modal-btn primary" href="${fileUrl}" download target="_blank">&#11015; 下载素材</a>
     <button class="modal-btn secondary" onclick="copyMaterialLink('${m.id}')">&#128279; 复制链接</button>
   `;
 
