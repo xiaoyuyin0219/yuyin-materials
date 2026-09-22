@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>谷雨 AI 素材库</title>
+<style>
+  :root {
+    --bg-primary: #F5F0EB;
+    --bg-secondary: #EDE6DD;
+    --bg-card: #EBE5DB;
+    --bg-hover: #E6DFD4;
+    --accent: #C4A882;
+    --accent-light: #D4A5A5;
+    --text-primary: #5C5346;
+    --text-secondary: #8A7E72;
+    --text-muted: #A89E90;
+    --border: #D5CBC0;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 4px 24px rgba(92, 82, 69, 0.1);
+    --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --green: #8FA882;
+    --orange: #B8A070;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ===== Header ===== */
+  .header {
+    background: rgba(237, 230, 221, 0.92);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(20px);
+  }
+
+  .header-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700; color: #fff;
+  }
+
+  .logo-text { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+  .logo-text span { color: var(--accent-light); }
+
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .search-box {
+    position: relative;
+    width: 320px;
+  }
+
+  .search-box input {
+    width: 100%;
+    padding: 9px 14px 9px 38px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+    transition: var(--transition);
+  }
+
+  .search-box input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(196, 168, 130, 0.2);
+  }
+
+  .search-box input::placeholder { color: var(--text-muted); }
+
+  .search-box .search-icon {
+    position: absolute;
+    left: 12px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 15px;
+    pointer-events: none;
+  }
+
+  .sort-select {
+    padding: 9px 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+
+  .sort-select:focus { border-color: var(--accent); }
+  .sort-select option { background: var(--bg-secondary); color: var(--text-primary); }
+
+  .stats {
+    font-size: 13px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+  .stats strong { color: var(--accent-light); }
+
+  /* ===== Filter Rows ===== */
+  .filters {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 16px 32px 0;
+  }
+
+  .filter-row {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+    margin-bottom: 10px;
+  }
+
+  .filter-row::-webkit-scrollbar { display: none; }
+
+  .filter-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    margin-right: 4px;
+    font-weight: 500;
+  }
+
+  .chip {
+    padding: 6px 16px;
+    border-radius: 18px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: var(--transition);
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    user-select: none;
+  }
+
+  .chip:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+  .chip.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  .chip .count {
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 11px;
+    opacity: 0.7;
+  }
+
+  /* ===== Content Grid ===== */
+  .content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px 32px 40px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
+  }
+
+  /* ===== Material Card ===== */
+  .card {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    transition: var(--transition);
+    position: relative;
+    animation: fadeIn 0.4s ease forwards;
+    opacity: 0;
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow);
+    border-color: var(--accent);
+  }
+
+  .card-thumb {
+    width: 100%;
+    aspect-ratio: 16/10;
+    background: var(--bg-secondary);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+  }
+
+  .card-thumb img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: var(--transition);
+  }
+
+  .card:hover .card-thumb img { transform: scale(1.05); }
+
+  .card-thumb .placeholder {
+    font-size: 48px;
+    opacity: 0.3;
+  }
+
+  .card-type-badge {
+    position: absolute;
+    top: 10px; right: 10px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    backdrop-filter: blur(8px);
+  }
+
+  .card-type-badge.video { background: rgba(196, 168, 130, 0.85); color: #fff; }
+  .card-type-badge.image { background: rgba(143, 168, 130, 0.85); color: #fff; }
+
+  .card-play-icon {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 48px; height: 48px;
+    background: rgba(92, 82, 69, 0.25);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+    transition: var(--transition);
+  }
+
+  .card:hover .card-play-icon {
+    background: rgba(196, 168, 130, 0.7);
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+
+  .card-play-icon::after {
+    content: '';
+    display: block;
+    width: 0; height: 0;
+    border-style: solid;
+    border-width: 8px 0 8px 16px;
+    border-color: transparent transparent transparent #fff;
+    margin-left: 3px;
+  }
+
+  .card-body { padding: 14px 16px; }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.4;
+    cursor: pointer;
+  }
+
+  .card-title:hover { color: var(--accent-light); }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .card-product {
+    padding: 2px 8px;
+    background: rgba(196, 168, 130, 0.12);
+    border-radius: 4px;
+    color: var(--accent-light);
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+
+  .card-action-btn {
+    flex: 1;
+    padding: 6px 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    text-decoration: none;
+  }
+
+  .card-action-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--accent);
+  }
+
+  .card-action-btn.copied {
+    background: rgba(143, 168, 130, 0.15);
+    color: var(--green);
+    border-color: var(--green);
+  }
+
+  .card-tags {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  .card-tag {
+    padding: 2px 8px;
+    background: rgba(196, 168, 130, 0.1);
+    color: var(--accent-light);
+    border-radius: 4px;
+    font-size: 11px;
+  }
+
+  /* ===== Empty State ===== */
+  .empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--text-muted);
+  }
+
+  .empty-state .icon { font-size: 64px; margin-bottom: 16px; opacity: 0.4; }
+  .empty-state p { font-size: 16px; }
+
+  /* ===== Guide Section ===== */
+  .guide {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 32px 60px;
+  }
+
+  .guide-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 32px;
+  }
+
+  .guide-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .guide-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .guide-item h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--accent-light);
+  }
+
+  .guide-item p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .guide-item code {
+    background: var(--bg-card);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--orange);
+  }
+
+  /* ===== Modal ===== */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(92, 82, 69, 0.45);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    backdrop-filter: blur(8px);
+  }
+
+  .modal-overlay.active { display: flex; }
+
+  .modal {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    max-width: 900px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(92, 82, 69, 0.15);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .modal-title { font-size: 16px; font-weight: 600; }
+
+  .modal-close {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: var(--transition);
+  }
+
+  .modal-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+  .modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .modal-media {
+    width: 100%;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: #3D3530;
+    margin-bottom: 16px;
+  }
+
+  .modal-media video { width: 100%; max-height: 60vh; display: block; }
+  .modal-media img { width: 100%; max-height: 60vh; object-fit: contain; display: block; }
+
+  .modal-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    font-size: 14px;
+  }
+
+  .modal-info-item { display: flex; flex-direction: column; gap: 4px; }
+
+  .modal-info-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .modal-info-value { color: var(--text-primary); font-weight: 500; }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .modal-btn {
+    flex: 1;
+    padding: 10px 0;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    text-align: center;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .modal-btn.primary {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+  }
+
+  .modal-btn.primary:hover { background: var(--accent-light); }
+
+  .modal-btn.secondary {
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+
+  .modal-btn.secondary:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+  /* ===== Toast ===== */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--green);
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 2000;
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 768px) {
+    .header { padding: 12px 16px; }
+    .header-inner { gap: 10px; }
+    .logo-text { font-size: 17px; }
+    .header-controls { gap: 8px; }
+    .search-box { width: 100%; order: 10; flex-basis: 100%; }
+    .stats { display: none; }
+    .filters { padding: 12px 16px 0; }
+    .content { padding: 16px 16px 30px; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+    .card-body { padding: 10px 12px; }
+    .card-title { font-size: 13px; }
+    .card-actions { flex-direction: column; gap: 4px; }
+    .modal-overlay { padding: 16px; }
+    .modal-info { grid-template-columns: 1fr; }
+    .guide { padding: 0 16px 40px; }
+    .guide-card { padding: 20px; }
+    .guide-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ===== Scrollbar ===== */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+  /* ===== Animation ===== */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">G</div>
+      <div class="logo-text">谷雨 <span>AI 素材库</span></div>
+    </div>
+    <div class="header-controls">
+      <div class="search-box">
+        <span class="search-icon">&#128269;</span>
+        <input type="text" id="searchInput" placeholder="搜索素材名称、标签..." autocomplete="off">
+      </div>
+      <select class="sort-select" id="sortSelect">
+        <option value="default">默认排序</option>
+        <option value="newest">最新上传</option>
+        <option value="name">名称排序</option>
+      </select>
+      <div class="stats" id="statsText">共 <strong>0</strong> 条素材</div>
+    </div>
+  </div>
+</header>
+
+<!-- Filters: Category + Product -->
+<div class="filters">
+  <div class="filter-row" id="categoryFilter"></div>
+  <div class="filter-row" id="productFilter"></div>
+</div>
+
+<!-- Content Grid -->
+<main class="content">
+  <div class="grid" id="materialGrid"></div>
+  <div class="empty-state" id="emptyState" style="display:none;">
+    <div class="icon">&#128270;</div>
+    <p>没有找到匹配的素材</p>
+  </div>
+</main>
+
+<!-- Usage Guide -->
+<section class="guide">
+  <div class="guide-card">
+    <div class="guide-title">&#128218; 使用说明</div>
+    <div class="guide-grid">
+      <div class="guide-item">
+        <h4>浏览素材</h4>
+        <p>点击上方分类标签筛选素材类型（上脸、产品、口播、其他），点击产品标签筛选适用产品。两个筛选条件可同时使用，缩小查找范围。</p>
+      </div>
+      <div class="guide-item">
+        <h4>搜索素材</h4>
+        <p>在顶部搜索框输入关键词，支持按素材名称和标签搜索。比如输入"数字人"会筛出所有带数字人标签的素材。</p>
+      </div>
+      <div class="guide-item">
+        <h4>下载素材</h4>
+        <p>每张卡片下方有「下载」按钮，点击即可保存视频/图片到本地。也可以点击卡片打开详情弹窗，在弹窗中预览并下载。</p>
+      </div>
+      <div class="guide-item">
+        <h4>分享素材</h4>
+        <p>点击卡片上的「复制链接」按钮，可将素材链接复制到剪贴板，直接粘贴到群里分享给组员。</p>
+      </div>
+      <div class="guide-item">
+        <h4>添加新素材</h4>
+        <p>联系素材库管理员（肖雨茵），提供素材文件、名称、所属分类和产品，由管理员统一添加到素材库中。</p>
+      </div>
+      <div class="guide-item">
+        <h4>自定义标签</h4>
+        <p>每条素材可以添加自定义标签，方便多维度检索。标签由上传时填写，后续可在搜索框中通过标签名快速筛选。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Preview Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle"></div>
+      <button class="modal-close" id="modalClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-media" id="modalMedia"></div>
+      <div class="modal-info" id="modalInfo"></div>
+      <div class="modal-actions" id="modalActions"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+//  配置区 — 产品和分类在这里管理
+// ============================================================
+
+// 产品分类（7个产品 + 通用）
+const products = [
+  { id: "all",       name: "全部产品" },
+  { id: "dabaipen",  name: "大白喷" },
+  { id: "yanshuang", name: "眼霜" },
+  { id: "gupen",     name: "固喷" },
+  { id: "jiaoyuanbang", name: "胶原棒" },
+  { id: "youbang",   name: "油棒" },
+  { id: "meibaicipao",  name: "美白次抛" },
+  { id: "xibaomisu", name: "细胞泌素眼霜" },
+  { id: "general",   name: "通用" }
+];
+
+// 素材分类（按画面用途分）
+const categories = [
+  { id: "all",       name: "全部",   icon: "&#128194;" },
+  { id: "shanglian", name: "上脸",   icon: "&#128133;" },
+  { id: "chanpin",   name: "产品",   icon: "&#128230;" },
+  { id: "koubo",     name: "口播",   icon: "&#127908;" },
+  { id: "qita",      name: "其他",   icon: "&#128203;" }
+];
+
+// ============================================================
+//  素材数据 — 编辑这个数组来增删改素材
+//  字段说明：
+//    id:        唯一标识（用于生成分享链接，必填）
+//    title:     素材名称（必填）
+//    type:      "video" 或 "image"（必填）
+//    category:  所属分类 ID（必填）
+//    product:   所属产品 ID（必填）
+//    thumbnail: 缩略图链接（选填）
+//    fileUrl:   视频/图片文件链接（选填，用于预览和下载）
+//    tags:      自定义标签数组（选填）
+//    uploader:  上传人（选填）
+//    date:      上传日期，格式 YYYY-MM-DD（选填）
+//    note:      备注（选填）
+// ============================================================
+const materials = [
+  // —— 产品（冰感/质地展示）——
+  {
+    id: "bg-001",
+    title: "大白喷冰箱前提取视频",
+    type: "video",
+    category: "chanpin",
+    product: "dabaipen",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["产品质地", "冰箱"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+  {
+    id: "bg-002",
+    title: "大白喷从冰箱拿出来姨妈巾",
+    type: "video",
+    category: "chanpin",
+    product: "dabaipen",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["产品质地", "开箱"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+  {
+    id: "bg-003",
+    title: "大白喷开冰箱",
+    type: "video",
+    category: "chanpin",
+    product: "dabaipen",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["产品质地"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+  {
+    id: "bg-004",
+    title: "大白喷倒出冰蜂妈妈",
+    type: "video",
+    category: "chanpin",
+    product: "dabaipen",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["产品质地", "倒出"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+  {
+    id: "bg-005",
+    title: "换片冰箱拿出",
+    type: "video",
+    category: "chanpin",
+    product: "general",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["产品质地", "冰箱"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+
+  // —— 上脸 ——
+  {
+    id: "sl-001",
+    title: "机器人冰喷已替换版",
+    type: "video",
+    category: "shanglian",
+    product: "dabaipen",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["AI数字人", "上脸"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+  {
+    id: "sl-002",
+    title: "黄金面膜换蓝色视频",
+    type: "video",
+    category: "shanglian",
+    product: "general",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["面膜", "换色"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+  {
+    id: "sl-003",
+    title: "AI数字人脸敷视频",
+    type: "video",
+    category: "shanglian",
+    product: "general",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["AI数字人", "上脸"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+  {
+    id: "sl-004",
+    title: "AI数字人涂抹视频变版（需要美颜）",
+    type: "video",
+    category: "shanglian",
+    product: "general",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["AI数字人", "涂抹"],
+    uploader: "",
+    date: "2025-09-18",
+    note: "需要给大腿的纹身打码"
+  },
+  {
+    id: "sl-005",
+    title: "十二星座面膜换蓝色视频",
+    type: "video",
+    category: "shanglian",
+    product: "general",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["面膜", "换色"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+  {
+    id: "sl-006",
+    title: "精灵面膜视频",
+    type: "video",
+    category: "shanglian",
+    product: "general",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["面膜"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+
+  // —— 产品（痛点/质地） ——
+  {
+    id: "td-001",
+    title: "大白喷黑头油脸",
+    type: "video",
+    category: "chanpin",
+    product: "dabaipen",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["黑头", "油脸"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+  {
+    id: "td-002",
+    title: "大白喷拿起",
+    type: "video",
+    category: "chanpin",
+    product: "dabaipen",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["产品展示"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+  {
+    id: "td-003",
+    title: "大白喷上手",
+    type: "video",
+    category: "chanpin",
+    product: "dabaipen",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["上手演示"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+  {
+    id: "td-004",
+    title: "涂抹动作视频",
+    type: "video",
+    category: "chanpin",
+    product: "general",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["涂抹", "动作"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+  {
+    id: "td-005",
+    title: "绿衣女子黑斑视频（第2s开始可用）",
+    type: "video",
+    category: "chanpin",
+    product: "general",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["黑斑", "痛点"],
+    uploader: "",
+    date: "2025-09-18",
+    note: "需要给大腿的纹身打码"
+  },
+  {
+    id: "td-006",
+    title: "换片黑头油脸",
+    type: "video",
+    category: "chanpin",
+    product: "general",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["黑头", "油脸"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+
+  // —— 其他 ——
+  {
+    id: "qt-001",
+    title: "换片工厂机制",
+    type: "video",
+    category: "qita",
+    product: "general",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["工厂", "机制"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+  {
+    id: "qt-002",
+    title: "军训防晒好物-大白喷",
+    type: "video",
+    category: "qita",
+    product: "dabaipen",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["军训", "防晒", "场景"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+  {
+    id: "qt-003",
+    title: "军训防晒好物-闪白针",
+    type: "video",
+    category: "qita",
+    product: "general",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["军训", "防晒", "场景"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+  {
+    id: "qt-004",
+    title: "雪姨健身房",
+    type: "video",
+    category: "qita",
+    product: "general",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["健身房", "场景"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+  {
+    id: "qt-005",
+    title: "大白喷健身房",
+    type: "video",
+    category: "qita",
+    product: "dabaipen",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["健身房", "场景"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+  {
+    id: "qt-006",
+    title: "脑沉痛点开头（前面可以用）",
+    type: "video",
+    category: "qita",
+    product: "general",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["痛点", "开头"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+
+  // —— 口播 ——
+  {
+    id: "kb-001",
+    title: "车间人员讲痛点视频",
+    type: "video",
+    category: "koubo",
+    product: "general",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["车间", "口播"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+  {
+    id: "kb-002",
+    title: "车间人员拿眼霜视频",
+    type: "video",
+    category: "koubo",
+    product: "yanshuang",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["车间", "眼霜"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+  {
+    id: "kb-003",
+    title: "胶原裸脸肌人都不会视频",
+    type: "video",
+    category: "koubo",
+    product: "jiaoyuanbang",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["胶原", "口播"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  },
+  {
+    id: "kb-004",
+    title: "打薄黑脸油空油满视频",
+    type: "video",
+    category: "koubo",
+    product: "general",
+    thumbnail: "",
+    fileUrl: "",
+    tags: ["油脸", "口播"],
+    uploader: "",
+    date: "2025-09-18",
+    note: ""
+  }
+];
+
+// ============================================================
+//  应用状态
+// ============================================================
+let currentCategory = 'all';
+let currentProduct = 'all';
+let searchQuery = '';
+let sortBy = 'default';
+
+// ============================================================
+//  初始化
+// ============================================================
+function init() {
+  renderCategoryFilter();
+  renderProductFilter();
+  renderGrid();
+  bindEvents();
+}
+
+// ============================================================
+//  渲染筛选器
+// ============================================================
+function renderCategoryFilter() {
+  const container = document.getElementById('categoryFilter');
+  container.innerHTML = '<span class="filter-label">分类</span>' + categories.map(cat => {
+    const count = cat.id === 'all'
+      ? materials.length
+      : materials.filter(m => m.category === cat.id).length;
+    return `<div class="chip${cat.id === currentCategory ? ' active' : ''}" data-type="category" data-id="${cat.id}">
+      ${cat.icon} ${cat.name}<span class="count">${count}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderProductFilter() {
+  const container = document.getElementById('productFilter');
+  container.innerHTML = '<span class="filter-label">产品</span>' + products.map(p => {
+    const count = p.id === 'all'
+      ? materials.length
+      : materials.filter(m => m.product === p.id).length;
+    return `<div class="chip${p.id === currentProduct ? ' active' : ''}" data-type="product" data-id="${p.id}">
+      ${p.name}<span class="count">${count}</span>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+//  筛选 + 排序
+// ============================================================
+function getFilteredMaterials() {
+  let result = materials.filter(m => {
+    const matchCategory = currentCategory === 'all' || m.category === currentCategory;
+    const matchProduct = currentProduct === 'all' || m.product === currentProduct;
+    const matchSearch = !searchQuery ||
+      m.title.toLowerCase().includes(searchQuery) ||
+      (m.tags && m.tags.some(t => t.toLowerCase().includes(searchQuery))) ||
+      (m.note && m.note.toLowerCase().includes(searchQuery));
+    return matchCategory && matchProduct && matchSearch;
+  });
+
+  // Sort
+  if (sortBy === 'newest') {
+    result.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  } else if (sortBy === 'name') {
+    result.sort((a, b) => a.title.localeCompare(b.title, 'zh'));
+  }
+
+  return result;
+}
+
+// ============================================================
+//  渲染卡片网格
+// ============================================================
+function renderGrid() {
+  const grid = document.getElementById('materialGrid');
+  const empty = document.getElementById('emptyState');
+  const filtered = getFilteredMaterials();
+
+  document.getElementById('statsText').innerHTML = `共 <strong>${filtered.length}</strong> 条素材`;
+
+  if (filtered.length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+
+  empty.style.display = 'none';
+
+  grid.innerHTML = filtered.map((m, i) => {
+    const cat = categories.find(c => c.id === m.category);
+    const prod = products.find(p => p.id === m.product);
+    const catName = cat ? cat.name : m.category;
+    const prodName = prod ? prod.name : m.product;
+
+    const thumbHtml = m.thumbnail
+      ? `<img src="${m.thumbnail}" alt="${m.title}" loading="lazy">`
+      : `<div class="placeholder">${m.type === 'video' ? '&#127909;' : '&#128247;'}</div>`;
+    const playIcon = m.type === 'video' ? '<div class="card-play-icon"></div>' : '';
+
+    return `<div class="card" style="animation-delay:${i * 0.04}s">
+      <div class="card-thumb" onclick="openModal('${m.id}')">
+        ${thumbHtml}
+        ${playIcon}
+        <div class="card-type-badge ${m.type}">${m.type === 'video' ? '视频' : '图片'}</div>
+      </div>
+      <div class="card-body">
+        <div class="card-title" onclick="openModal('${m.id}')">${m.title}</div>
+        <div class="card-meta">
+          <span class="card-product">${prodName}</span>
+          <span>${catName}</span>
+        </div>
+        ${m.tags && m.tags.length ? `<div class="card-tags">${m.tags.map(t => `<span class="card-tag">${t}</span>`).join('')}</div>` : ''}
+        <div class="card-actions">
+          ${m.fileUrl ? `<a class="card-action-btn" href="${m.fileUrl}" download target="_blank">&#11015; 下载</a>` : '<span class="card-action-btn" style="opacity:0.4;cursor:default;">&#11015; 暂无文件</span>'}
+          <button class="card-action-btn" onclick="copyMaterialLink('${m.id}', this)">&#128279; 复制链接</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+//  事件绑定
+// ============================================================
+function bindEvents() {
+  // Category filter
+  document.getElementById('categoryFilter').addEventListener('click', e => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    currentCategory = chip.dataset.id;
+    renderCategoryFilter();
+    renderGrid();
+  });
+
+  // Product filter
+  document.getElementById('productFilter').addEventListener('click', e => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    currentProduct = chip.dataset.id;
+    renderProductFilter();
+    renderGrid();
+  });
+
+  // Search
+  document.getElementById('searchInput').addEventListener('input', e => {
+    searchQuery = e.target.value.toLowerCase().trim();
+    renderGrid();
+  });
+
+  // Sort
+  document.getElementById('sortSelect').addEventListener('change', e => {
+    sortBy = e.target.value;
+    renderGrid();
+  });
+
+  // Modal close
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+  document.getElementById('modalOverlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+  });
+}
+
+// ============================================================
+//  复制链接
+// ============================================================
+function copyMaterialLink(id, btnEl) {
+  const url = window.location.origin + window.location.pathname + '#material-' + id;
+  navigator.clipboard.writeText(url).then(() => {
+    if (btnEl) {
+      btnEl.classList.add('copied');
+      btnEl.innerHTML = '&#10003; 已复制';
+      setTimeout(() => {
+        btnEl.classList.remove('copied');
+        btnEl.innerHTML = '&#128279; 复制链接';
+      }, 2000);
+    }
+    showToast('链接已复制到剪贴板');
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('链接已复制');
+  });
+}
+
+// ============================================================
+//  Toast 提示
+// ============================================================
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// ============================================================
+//  详情弹窗
+// ============================================================
+function openModal(id) {
+  const m = materials.find(item => item.id === id);
+  if (!m) return;
+
+  const cat = categories.find(c => c.id === m.category);
+  const prod = products.find(p => p.id === m.product);
+  const overlay = document.getElementById('modalOverlay');
+
+  document.getElementById('modalTitle').textContent = m.title;
+
+  // Media preview
+  const mediaEl = document.getElementById('modalMedia');
+  if (m.fileUrl) {
+    if (m.type === 'video') {
+      mediaEl.innerHTML = `<video src="${m.fileUrl}" controls autoplay></video>`;
+    } else {
+      mediaEl.innerHTML = `<img src="${m.fileUrl}" alt="${m.title}">`;
+    }
+  } else {
+    mediaEl.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-muted);font-size:14px;">
+      暂无预览链接<br><span style="font-size:12px;opacity:0.6;">请在数据中填写 fileUrl 字段</span>
+    </div>`;
+  }
+
+  // Info
+  const infoEl = document.getElementById('modalInfo');
+  const infoItems = [];
+  if (prod) infoItems.push({ label: '产品', value: prod.name });
+  if (cat) infoItems.push({ label: '分类', value: cat.name });
+  infoItems.push({ label: '类型', value: m.type === 'video' ? '视频' : '图片' });
+  if (m.uploader) infoItems.push({ label: '上传人', value: m.uploader });
+  if (m.date) infoItems.push({ label: '日期', value: m.date });
+  if (m.tags && m.tags.length) infoItems.push({ label: '标签', value: m.tags.join(' / ') });
+  if (m.note) infoItems.push({ label: '备注', value: m.note });
+
+  infoEl.innerHTML = infoItems.map(item =>
+    `<div class="modal-info-item">
+      <span class="modal-info-label">${item.label}</span>
+      <span class="modal-info-value">${item.value}</span>
+    </div>`
+  ).join('');
+
+  // Actions
+  const actionsEl = document.getElementById('modalActions');
+  actionsEl.innerHTML = `
+    ${m.fileUrl ? `<a class="modal-btn primary" href="${m.fileUrl}" download target="_blank">&#11015; 下载素材</a>` : '<span class="modal-btn primary" style="opacity:0.4;cursor:default;">暂无文件</span>'}
+    <button class="modal-btn secondary" onclick="copyMaterialLink('${m.id}')">&#128279; 复制链接</button>
+  `;
+
+  overlay.classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('active');
+  document.getElementById('modalMedia').innerHTML = '';
+}
+
+// ============================================================
+//  启动
+// ============================================================
+init();
+</script>
+</body>
+</html>
