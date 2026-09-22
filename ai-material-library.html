@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>谷雨 AI 素材库</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --bg-primary: #F5F0EB;
@@ -136,6 +137,24 @@
     flex-shrink: 0;
   }
   .stats strong { color: var(--accent-light); }
+
+  .upload-btn {
+    padding: 9px 20px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .upload-btn:hover { background: var(--accent-light); }
 
   /* ===== Filter Rows ===== */
   .filters {
@@ -390,7 +409,7 @@
     font-size: 11px;
   }
 
-  /* ===== Empty State ===== */
+  /* ===== Empty / Loading State ===== */
   .empty-state {
     text-align: center;
     padding: 80px 20px;
@@ -399,6 +418,23 @@
 
   .empty-state .icon { font-size: 64px; margin-bottom: 16px; opacity: 0.4; }
   .empty-state p { font-size: 16px; }
+
+  .loading-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--text-muted);
+  }
+
+  .loading-spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
 
   /* ===== Guide Section ===== */
   .guide {
@@ -577,6 +613,142 @@
 
   .modal-btn.secondary:hover { background: var(--bg-hover); color: var(--text-primary); }
 
+  /* ===== Upload Modal ===== */
+  .upload-modal .modal { max-width: 560px; }
+
+  .upload-dropzone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    margin-bottom: 20px;
+    background: var(--bg-card);
+  }
+
+  .upload-dropzone:hover, .upload-dropzone.dragover {
+    border-color: var(--accent);
+    background: rgba(196, 168, 130, 0.08);
+  }
+
+  .upload-dropzone .drop-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
+  .upload-dropzone .drop-text { font-size: 15px; color: var(--text-secondary); margin-bottom: 4px; }
+  .upload-dropzone .drop-hint { font-size: 12px; color: var(--text-muted); }
+
+  .upload-file-info {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+  }
+
+  .upload-file-info.show { display: flex; }
+
+  .upload-file-icon { font-size: 28px; flex-shrink: 0; }
+  .upload-file-name { font-size: 14px; font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .upload-file-size { font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
+  .upload-file-remove {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .upload-form { display: flex; flex-direction: column; gap: 14px; }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+
+  .form-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .form-label .required { color: var(--accent-light); margin-left: 2px; }
+
+  .form-input, .form-select, .form-textarea {
+    padding: 9px 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+    transition: var(--transition);
+    font-family: inherit;
+  }
+
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(196, 168, 130, 0.15);
+  }
+
+  .form-textarea { resize: vertical; min-height: 60px; }
+  .form-select option { background: var(--bg-secondary); }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .upload-progress {
+    display: none;
+    margin-top: 16px;
+  }
+
+  .upload-progress.show { display: block; }
+
+  .progress-bar-bg {
+    width: 100%;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+
+  .progress-text {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    text-align: center;
+  }
+
+  .upload-submit-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    margin-top: 8px;
+  }
+
+  .upload-submit-btn:hover { background: var(--accent-light); }
+  .upload-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
   /* ===== Toast ===== */
   .toast {
     position: fixed;
@@ -600,6 +772,8 @@
     transform: translateX(-50%) translateY(0);
   }
 
+  .toast.error { background: #C47070; }
+
   /* ===== Responsive ===== */
   @media (max-width: 768px) {
     .header { padding: 12px 16px; }
@@ -619,6 +793,8 @@
     .guide { padding: 0 16px 40px; }
     .guide-card { padding: 20px; }
     .guide-grid { grid-template-columns: 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+    .upload-btn span.btn-text { display: none; }
   }
 
   /* ===== Scrollbar ===== */
@@ -654,6 +830,7 @@
         <option value="name">名称排序</option>
       </select>
       <div class="stats" id="statsText">共 <strong>0</strong> 条素材</div>
+      <button class="upload-btn" id="uploadBtn">&#128228; <span class="btn-text">上传素材</span></button>
     </div>
   </div>
 </header>
@@ -666,7 +843,11 @@
 
 <!-- Content Grid -->
 <main class="content">
-  <div class="grid" id="materialGrid"></div>
+  <div class="loading-state" id="loadingState">
+    <div class="loading-spinner"></div>
+    <p>正在加载素材...</p>
+  </div>
+  <div class="grid" id="materialGrid" style="display:none;"></div>
   <div class="empty-state" id="emptyState" style="display:none;">
     <div class="icon">&#128270;</div>
     <p>没有找到匹配的素材</p>
@@ -695,12 +876,12 @@
         <p>点击卡片上的「复制链接」按钮，可将素材链接复制到剪贴板，直接粘贴到群里分享给组员。</p>
       </div>
       <div class="guide-item">
-        <h4>添加新素材</h4>
-        <p>将视频文件按素材ID命名（如 <code>bg-001.mp4</code>），通过 GitHub 仓库上传即可。网页会自动匹配文件并显示视频首帧作为封面，无需手动填写链接。联系管理员（肖雨茵）添加新素材条目。</p>
+        <h4>上传素材</h4>
+        <p>点击右上角「上传素材」按钮，拖入或选择视频/图片文件，填写素材名称、分类、产品等信息后提交。文件会自动上传到云端，无需手动操作 GitHub。视频首帧会自动作为封面显示。</p>
       </div>
       <div class="guide-item">
         <h4>自定义标签</h4>
-        <p>每条素材可以添加自定义标签，方便多维度检索。标签由上传时填写，后续可在搜索框中通过标签名快速筛选。</p>
+        <p>上传时可添加自定义标签（多个标签用逗号分隔），方便多维度检索。后续可在搜索框中通过标签名快速筛选。</p>
       </div>
     </div>
   </div>
@@ -721,15 +902,101 @@
   </div>
 </div>
 
+<!-- Upload Modal -->
+<div class="modal-overlay upload-modal" id="uploadModalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">&#128228; 上传新素材</div>
+      <button class="modal-close" id="uploadModalClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <!-- Drop Zone -->
+      <div class="upload-dropzone" id="uploadDropzone">
+        <div class="drop-icon">&#128194;</div>
+        <div class="drop-text">拖拽文件到此处，或点击选择</div>
+        <div class="drop-hint">支持 MP4、MOV、JPG、PNG 格式</div>
+      </div>
+      <input type="file" id="uploadFileInput" accept="video/*,image/*" style="display:none;">
+
+      <!-- File Info -->
+      <div class="upload-file-info" id="uploadFileInfo">
+        <span class="upload-file-icon" id="uploadFileIcon"></span>
+        <span class="upload-file-name" id="uploadFileName"></span>
+        <span class="upload-file-size" id="uploadFileSize"></span>
+        <button class="upload-file-remove" id="uploadFileRemove">&times;</button>
+      </div>
+
+      <!-- Form -->
+      <div class="upload-form" id="uploadForm" style="display:none;">
+        <div class="form-group">
+          <label class="form-label">素材名称<span class="required">*</span></label>
+          <input class="form-input" type="text" id="uploadTitle" placeholder="输入素材名称">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">分类<span class="required">*</span></label>
+            <select class="form-select" id="uploadCategory">
+              <option value="">请选择分类</option>
+              <option value="shanglian">上脸</option>
+              <option value="chanpin">产品</option>
+              <option value="koubo">口播</option>
+              <option value="qita">其他</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">产品<span class="required">*</span></label>
+            <select class="form-select" id="uploadProduct">
+              <option value="">请选择产品</option>
+              <option value="dabaipen">大白喷</option>
+              <option value="yanshuang">眼霜</option>
+              <option value="gupen">固喷</option>
+              <option value="jiaoyuanbang">胶原棒</option>
+              <option value="youbang">油棒</option>
+              <option value="meibaicipao">美白次抛</option>
+              <option value="xibaomisu">细胞泌素眼霜</option>
+              <option value="general">通用</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">标签</label>
+          <input class="form-input" type="text" id="uploadTags" placeholder="多个标签用逗号分隔，如：AI数字人, 上脸, 美白">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">上传人</label>
+            <input class="form-input" type="text" id="uploadUploader" placeholder="你的名字">
+          </div>
+          <div class="form-group">
+            <label class="form-label">备注</label>
+            <input class="form-input" type="text" id="uploadNote" placeholder="可选备注">
+          </div>
+        </div>
+        <button class="upload-submit-btn" id="uploadSubmitBtn" disabled>提交上传</button>
+        <div class="upload-progress" id="uploadProgress">
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressBarFill"></div></div>
+          <div class="progress-text" id="progressText">准备上传...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Toast Notification -->
 <div class="toast" id="toast"></div>
 
 <script>
 // ============================================================
-//  配置区 — 产品和分类在这里管理
+//  Supabase 配置
 // ============================================================
+const SUPABASE_URL = 'https://cpozjrxvltfqblbmueki.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwb3pqcnh2bHRmcWJsYm11ZWtpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwNzkxNzEsImV4cCI6MjEwNTY1NTE3MX0.uSVoggTIzSckCvo88YHyFIbeordkTYCburihHjDQv7Q';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const STORAGE_BUCKET = 'materials';
 
-// 产品分类（7个产品 + 通用）
+// ============================================================
+//  产品分类
+// ============================================================
 const products = [
   { id: "all",       name: "全部产品" },
   { id: "dabaipen",  name: "大白喷" },
@@ -742,7 +1009,6 @@ const products = [
   { id: "general",   name: "通用" }
 ];
 
-// 素材分类（按画面用途分）
 const categories = [
   { id: "all",       name: "全部",   icon: "&#128194;" },
   { id: "shanglian", name: "上脸",   icon: "&#128133;" },
@@ -752,405 +1018,48 @@ const categories = [
 ];
 
 // ============================================================
-//  素材数据 — 编辑这个数组来增删改素材
-//  字段说明：
-//    id:        唯一标识（用于生成分享链接，必填）
-//    title:     素材名称（必填）
-//    type:      "video" 或 "image"（必填）
-//    category:  所属分类 ID（必填）
-//    product:   所属产品 ID（必填）
-//    thumbnail: 缩略图链接（选填）
-//    fileUrl:   视频/图片文件链接（选填，用于预览和下载）
-//    tags:      自定义标签数组（选填）
-//    uploader:  上传人（选填）
-//    date:      上传日期，格式 YYYY-MM-DD（选填）
-//    note:      备注（选填）
-// ============================================================
-const materials = [
-  // —— 产品（冰感/质地展示）——
-  {
-    id: "bg-001",
-    title: "大白喷冰箱前提取视频",
-    type: "video",
-    category: "chanpin",
-    product: "dabaipen",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["产品质地", "冰箱"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-  {
-    id: "bg-002",
-    title: "大白喷从冰箱拿出来姨妈巾",
-    type: "video",
-    category: "chanpin",
-    product: "dabaipen",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["产品质地", "开箱"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-  {
-    id: "bg-003",
-    title: "大白喷开冰箱",
-    type: "video",
-    category: "chanpin",
-    product: "dabaipen",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["产品质地"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-  {
-    id: "bg-004",
-    title: "大白喷倒出冰蜂妈妈",
-    type: "video",
-    category: "chanpin",
-    product: "dabaipen",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["产品质地", "倒出"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-  {
-    id: "bg-005",
-    title: "换片冰箱拿出",
-    type: "video",
-    category: "chanpin",
-    product: "general",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["产品质地", "冰箱"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-
-  // —— 上脸 ——
-  {
-    id: "sl-001",
-    title: "机器人冰喷已替换版",
-    type: "video",
-    category: "shanglian",
-    product: "dabaipen",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["AI数字人", "上脸"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-  {
-    id: "sl-002",
-    title: "黄金面膜换蓝色视频",
-    type: "video",
-    category: "shanglian",
-    product: "general",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["面膜", "换色"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-  {
-    id: "sl-003",
-    title: "AI数字人脸敷视频",
-    type: "video",
-    category: "shanglian",
-    product: "general",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["AI数字人", "上脸"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-  {
-    id: "sl-004",
-    title: "AI数字人涂抹视频变版（需要美颜）",
-    type: "video",
-    category: "shanglian",
-    product: "general",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["AI数字人", "涂抹"],
-    uploader: "",
-    date: "2025-09-18",
-    note: "需要给大腿的纹身打码"
-  },
-  {
-    id: "sl-005",
-    title: "十二星座面膜换蓝色视频",
-    type: "video",
-    category: "shanglian",
-    product: "general",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["面膜", "换色"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-  {
-    id: "sl-006",
-    title: "精灵面膜视频",
-    type: "video",
-    category: "shanglian",
-    product: "general",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["面膜"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-
-  // —— 产品（痛点/质地） ——
-  {
-    id: "td-001",
-    title: "大白喷黑头油脸",
-    type: "video",
-    category: "chanpin",
-    product: "dabaipen",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["黑头", "油脸"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-  {
-    id: "td-002",
-    title: "大白喷拿起",
-    type: "video",
-    category: "chanpin",
-    product: "dabaipen",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["产品展示"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-  {
-    id: "td-003",
-    title: "大白喷上手",
-    type: "video",
-    category: "chanpin",
-    product: "dabaipen",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["上手演示"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-  {
-    id: "td-004",
-    title: "涂抹动作视频",
-    type: "video",
-    category: "chanpin",
-    product: "general",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["涂抹", "动作"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-  {
-    id: "td-005",
-    title: "绿衣女子黑斑视频（第2s开始可用）",
-    type: "video",
-    category: "chanpin",
-    product: "general",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["黑斑", "痛点"],
-    uploader: "",
-    date: "2025-09-18",
-    note: "需要给大腿的纹身打码"
-  },
-  {
-    id: "td-006",
-    title: "换片黑头油脸",
-    type: "video",
-    category: "chanpin",
-    product: "general",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["黑头", "油脸"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-
-  // —— 其他 ——
-  {
-    id: "qt-001",
-    title: "换片工厂机制",
-    type: "video",
-    category: "qita",
-    product: "general",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["工厂", "机制"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-  {
-    id: "qt-002",
-    title: "军训防晒好物-大白喷",
-    type: "video",
-    category: "qita",
-    product: "dabaipen",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["军训", "防晒", "场景"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-  {
-    id: "qt-003",
-    title: "军训防晒好物-闪白针",
-    type: "video",
-    category: "qita",
-    product: "general",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["军训", "防晒", "场景"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-  {
-    id: "qt-004",
-    title: "雪姨健身房",
-    type: "video",
-    category: "qita",
-    product: "general",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["健身房", "场景"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-  {
-    id: "qt-005",
-    title: "大白喷健身房",
-    type: "video",
-    category: "qita",
-    product: "dabaipen",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["健身房", "场景"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-  {
-    id: "qt-006",
-    title: "脑沉痛点开头（前面可以用）",
-    type: "video",
-    category: "qita",
-    product: "general",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["痛点", "开头"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-
-  // —— 口播 ——
-  {
-    id: "kb-001",
-    title: "车间人员讲痛点视频",
-    type: "video",
-    category: "koubo",
-    product: "general",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["车间", "口播"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-  {
-    id: "kb-002",
-    title: "车间人员拿眼霜视频",
-    type: "video",
-    category: "koubo",
-    product: "yanshuang",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["车间", "眼霜"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-  {
-    id: "kb-003",
-    title: "胶原裸脸肌人都不会视频",
-    type: "video",
-    category: "koubo",
-    product: "jiaoyuanbang",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["胶原", "口播"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  },
-  {
-    id: "kb-004",
-    title: "打薄黑脸油空油满视频",
-    type: "video",
-    category: "koubo",
-    product: "general",
-    thumbnail: "",
-    fileUrl: "",
-    tags: ["油脸", "口播"],
-    uploader: "",
-    date: "2025-09-18",
-    note: ""
-  }
-];
-
-// ============================================================
-//  文件托管基础路径 — 视频文件上传到GitHub仓库后，自动按ID匹配
-//  规则：上传文件名 = 素材ID + .mp4（如 bg-001.mp4 对应 id:"bg-001"）
-// ============================================================
-const FILE_BASE = 'https://xiaoyuyin0219.github.io/yuyin-materials/';
-
-// ============================================================
 //  应用状态
 // ============================================================
+let materials = [];
 let currentCategory = 'all';
 let currentProduct = 'all';
 let searchQuery = '';
 let sortBy = 'default';
+let uploadFile = null;
 
 // ============================================================
 //  初始化
 // ============================================================
-function init() {
+async function init() {
   renderCategoryFilter();
   renderProductFilter();
-  renderGrid();
+  await loadMaterials();
   bindEvents();
+}
+
+// ============================================================
+//  从 Supabase 加载素材
+// ============================================================
+async function loadMaterials() {
+  const loadingEl = document.getElementById('loadingState');
+  const gridEl = document.getElementById('materialGrid');
+
+  try {
+    const { data, error } = await supabase
+      .from('materials')
+      .select('*')
+      .order('date', { ascending: false });
+
+    if (error) throw error;
+
+    materials = data || [];
+    loadingEl.style.display = 'none';
+    gridEl.style.display = 'grid';
+    renderGrid();
+  } catch (err) {
+    console.error('加载素材失败:', err);
+    loadingEl.innerHTML = '<p style="color:var(--accent-light);">加载失败，请刷新页面重试</p>';
+  }
 }
 
 // ============================================================
@@ -1189,12 +1098,11 @@ function getFilteredMaterials() {
     const matchProduct = currentProduct === 'all' || m.product === currentProduct;
     const matchSearch = !searchQuery ||
       m.title.toLowerCase().includes(searchQuery) ||
-      (m.tags && m.tags.some(t => t.toLowerCase().includes(searchQuery))) ||
+      (m.tags && m.tags.some && m.tags.some(t => t.toLowerCase().includes(searchQuery))) ||
       (m.note && m.note.toLowerCase().includes(searchQuery));
     return matchCategory && matchProduct && matchSearch;
   });
 
-  // Sort
   if (sortBy === 'newest') {
     result.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   } else if (sortBy === 'name') {
@@ -1214,13 +1122,19 @@ function renderGrid() {
 
   document.getElementById('statsText').innerHTML = `共 <strong>${filtered.length}</strong> 条素材`;
 
+  // Update filter counts
+  renderCategoryFilter();
+  renderProductFilter();
+
   if (filtered.length === 0) {
     grid.innerHTML = '';
+    grid.style.display = 'none';
     empty.style.display = 'block';
     return;
   }
 
   empty.style.display = 'none';
+  grid.style.display = 'grid';
 
   grid.innerHTML = filtered.map((m, i) => {
     const cat = categories.find(c => c.id === m.category);
@@ -1228,26 +1142,28 @@ function renderGrid() {
     const catName = cat ? cat.name : m.category;
     const prodName = prod ? prod.name : m.product;
 
-    // 自动按ID生成文件链接（视频=.mp4，图片=.jpg/.png）
-    const autoFileUrl = m.fileUrl || (m.type === 'video' ? FILE_BASE + m.id + '.mp4' : FILE_BASE + m.id + '.jpg');
-    const hasFile = m.fileUrl || true; // 文件可能存在也可能不存在，用onerror检测
+    const fileUrl = m.file_url || '';
+    const isVideo = m.type === 'video';
 
-    // 缩略图：有自定义thumbnail用图片，视频用首帧，图片用占位符
+    // Thumbnail
     let thumbHtml;
     if (m.thumbnail) {
       thumbHtml = `<img src="${m.thumbnail}" alt="${m.title}" loading="lazy">`;
-    } else if (m.type === 'video') {
-      thumbHtml = `<video class="card-video-thumb" src="${FILE_BASE}${m.id}.mp4" preload="auto" muted playsinline onloadeddata="this.currentTime=0" onerror="this.style.display='none';this.parentElement.querySelector('.thumb-fallback').style.display='flex'"></video><div class="thumb-fallback" style="display:none"><div class="placeholder">&#127909;</div></div>`;
+    } else if (isVideo && fileUrl) {
+      thumbHtml = `<video class="card-video-thumb" src="${fileUrl}" preload="metadata" muted playsinline onloadeddata="this.currentTime=0" onerror="this.style.display='none';this.parentElement.querySelector('.thumb-fallback').style.display='flex'"></video><div class="thumb-fallback" style="display:none"><div class="placeholder">&#127909;</div></div>`;
+    } else if (!isVideo && fileUrl) {
+      thumbHtml = `<img src="${fileUrl}" alt="${m.title}" loading="lazy" onerror="this.style.display='none';this.parentElement.querySelector('.thumb-fallback').style.display='flex'"><div class="thumb-fallback" style="display:none"><div class="placeholder">&#128247;</div></div>`;
     } else {
-      thumbHtml = `<img src="${FILE_BASE}${m.id}.jpg" alt="${m.title}" loading="lazy" onerror="this.style.display='none';this.parentElement.querySelector('.thumb-fallback').style.display='flex'"><div class="thumb-fallback" style="display:none"><div class="placeholder">&#128247;</div></div>`;
+      thumbHtml = `<div class="thumb-fallback"><div class="placeholder">${isVideo ? '&#127909;' : '&#128247;'}</div></div>`;
     }
-    const playIcon = m.type === 'video' ? '<div class="card-play-icon"></div>' : '';
+
+    const playIcon = isVideo ? '<div class="card-play-icon"></div>' : '';
 
     return `<div class="card" style="animation-delay:${i * 0.04}s">
       <div class="card-thumb" onclick="openModal('${m.id}')">
         ${thumbHtml}
         ${playIcon}
-        <div class="card-type-badge ${m.type}">${m.type === 'video' ? '视频' : '图片'}</div>
+        <div class="card-type-badge ${isVideo ? 'video' : 'image'}">${isVideo ? '视频' : '图片'}</div>
       </div>
       <div class="card-body">
         <div class="card-title" onclick="openModal('${m.id}')">${m.title}</div>
@@ -1257,7 +1173,7 @@ function renderGrid() {
         </div>
         ${m.tags && m.tags.length ? `<div class="card-tags">${m.tags.map(t => `<span class="card-tag">${t}</span>`).join('')}</div>` : ''}
         <div class="card-actions">
-          <a class="card-action-btn" href="${autoFileUrl}" download target="_blank" onerror="this.style.opacity=0.4">&#11015; 下载</a>
+          <a class="card-action-btn" href="${fileUrl}" download target="_blank" ${!fileUrl ? 'style="opacity:0.4;pointer-events:none"' : ''}>&#11015; 下载</a>
           <button class="card-action-btn" onclick="copyMaterialLink('${m.id}', this)">&#128279; 复制链接</button>
         </div>
       </div>
@@ -1269,43 +1185,77 @@ function renderGrid() {
 //  事件绑定
 // ============================================================
 function bindEvents() {
-  // Category filter
   document.getElementById('categoryFilter').addEventListener('click', e => {
     const chip = e.target.closest('.chip');
     if (!chip) return;
     currentCategory = chip.dataset.id;
-    renderCategoryFilter();
     renderGrid();
   });
 
-  // Product filter
   document.getElementById('productFilter').addEventListener('click', e => {
     const chip = e.target.closest('.chip');
     if (!chip) return;
     currentProduct = chip.dataset.id;
-    renderProductFilter();
     renderGrid();
   });
 
-  // Search
   document.getElementById('searchInput').addEventListener('input', e => {
     searchQuery = e.target.value.toLowerCase().trim();
     renderGrid();
   });
 
-  // Sort
   document.getElementById('sortSelect').addEventListener('change', e => {
     sortBy = e.target.value;
     renderGrid();
   });
 
-  // Modal close
+  // Preview modal close
   document.getElementById('modalClose').addEventListener('click', closeModal);
   document.getElementById('modalOverlay').addEventListener('click', e => {
     if (e.target === e.currentTarget) closeModal();
   });
+
+  // Upload modal
+  document.getElementById('uploadBtn').addEventListener('click', openUploadModal);
+  document.getElementById('uploadModalClose').addEventListener('click', closeUploadModal);
+  document.getElementById('uploadModalOverlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeUploadModal();
+  });
+
+  // Upload dropzone
+  const dropzone = document.getElementById('uploadDropzone');
+  const fileInput = document.getElementById('uploadFileInput');
+
+  dropzone.addEventListener('click', () => fileInput.click());
+
+  dropzone.addEventListener('dragover', e => {
+    e.preventDefault();
+    dropzone.classList.add('dragover');
+  });
+
+  dropzone.addEventListener('dragleave', () => {
+    dropzone.classList.remove('dragover');
+  });
+
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) handleFileSelect(e.dataTransfer.files[0]);
+  });
+
+  fileInput.addEventListener('change', e => {
+    if (e.target.files.length) handleFileSelect(e.target.files[0]);
+  });
+
+  document.getElementById('uploadFileRemove').addEventListener('click', clearUploadFile);
+
+  document.getElementById('uploadSubmitBtn').addEventListener('click', handleUpload);
+
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeModal();
+    if (e.key === 'Escape') {
+      closeModal();
+      closeUploadModal();
+    }
   });
 }
 
@@ -1325,7 +1275,6 @@ function copyMaterialLink(id, btnEl) {
     }
     showToast('链接已复制到剪贴板');
   }).catch(() => {
-    // Fallback
     const ta = document.createElement('textarea');
     ta.value = url;
     document.body.appendChild(ta);
@@ -1339,11 +1288,12 @@ function copyMaterialLink(id, btnEl) {
 // ============================================================
 //  Toast 提示
 // ============================================================
-function showToast(msg) {
+function showToast(msg, isError) {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
+  toast.className = 'toast' + (isError ? ' error' : '');
   toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 2000);
+  setTimeout(() => toast.classList.remove('show'), 2500);
 }
 
 // ============================================================
@@ -1359,9 +1309,9 @@ function openModal(id) {
 
   document.getElementById('modalTitle').textContent = m.title;
 
-  // Media preview — 自动按ID匹配文件
   const mediaEl = document.getElementById('modalMedia');
-  const fileUrl = m.fileUrl || (m.type === 'video' ? FILE_BASE + m.id + '.mp4' : FILE_BASE + m.id + '.jpg');
+  const fileUrl = m.file_url || '';
+
   if (fileUrl) {
     if (m.type === 'video') {
       mediaEl.innerHTML = `<video src="${fileUrl}" controls autoplay></video>`;
@@ -1369,12 +1319,9 @@ function openModal(id) {
       mediaEl.innerHTML = `<img src="${fileUrl}" alt="${m.title}">`;
     }
   } else {
-    mediaEl.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-muted);font-size:14px;">
-      暂无预览链接<br><span style="font-size:12px;opacity:0.6;">请在数据中填写 fileUrl 字段</span>
-    </div>`;
+    mediaEl.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-muted);font-size:14px;">暂无预览文件</div>`;
   }
 
-  // Info
   const infoEl = document.getElementById('modalInfo');
   const infoItems = [];
   if (prod) infoItems.push({ label: '产品', value: prod.name });
@@ -1392,10 +1339,9 @@ function openModal(id) {
     </div>`
   ).join('');
 
-  // Actions
   const actionsEl = document.getElementById('modalActions');
   actionsEl.innerHTML = `
-    <a class="modal-btn primary" href="${fileUrl}" download target="_blank">&#11015; 下载素材</a>
+    <a class="modal-btn primary" href="${fileUrl}" download target="_blank" ${!fileUrl ? 'style="opacity:0.4;pointer-events:none"' : ''}>&#11015; 下载素材</a>
     <button class="modal-btn secondary" onclick="copyMaterialLink('${m.id}')">&#128279; 复制链接</button>
   `;
 
@@ -1405,6 +1351,168 @@ function openModal(id) {
 function closeModal() {
   document.getElementById('modalOverlay').classList.remove('active');
   document.getElementById('modalMedia').innerHTML = '';
+}
+
+// ============================================================
+//  上传功能
+// ============================================================
+function openUploadModal() {
+  document.getElementById('uploadModalOverlay').classList.add('active');
+}
+
+function closeUploadModal() {
+  document.getElementById('uploadModalOverlay').classList.remove('active');
+  clearUploadFile();
+  resetUploadForm();
+}
+
+function handleFileSelect(file) {
+  const validTypes = ['video/mp4', 'video/quicktime', 'image/jpeg', 'image/png', 'video/webm'];
+  if (!validTypes.some(t => file.type.startsWith(t.split('/')[0]))) {
+    showToast('不支持的文件格式', true);
+    return;
+  }
+
+  uploadFile = file;
+
+  const isVideo = file.type.startsWith('video/');
+  document.getElementById('uploadFileIcon').textContent = isVideo ? '\uD83C\uDFAC' : '\uD83D\uDDBC\uFE0F';
+  document.getElementById('uploadFileName').textContent = file.name;
+  document.getElementById('uploadFileSize').textContent = formatFileSize(file.size);
+  document.getElementById('uploadFileInfo').classList.add('show');
+  document.getElementById('uploadDropzone').style.display = 'none';
+  document.getElementById('uploadForm').style.display = 'flex';
+
+  // Auto-fill title from filename (remove extension)
+  const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+  document.getElementById('uploadTitle').value = nameWithoutExt;
+
+  // Auto-detect type
+  document.getElementById('uploadSubmitBtn').disabled = false;
+}
+
+function clearUploadFile() {
+  uploadFile = null;
+  document.getElementById('uploadFileInput').value = '';
+  document.getElementById('uploadFileInfo').classList.remove('show');
+  document.getElementById('uploadDropzone').style.display = '';
+  document.getElementById('uploadForm').style.display = 'none';
+  document.getElementById('uploadSubmitBtn').disabled = true;
+  document.getElementById('uploadProgress').classList.remove('show');
+}
+
+function resetUploadForm() {
+  document.getElementById('uploadTitle').value = '';
+  document.getElementById('uploadCategory').value = '';
+  document.getElementById('uploadProduct').value = '';
+  document.getElementById('uploadTags').value = '';
+  document.getElementById('uploadUploader').value = '';
+  document.getElementById('uploadNote').value = '';
+}
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+async function handleUpload() {
+  if (!uploadFile) return;
+
+  const title = document.getElementById('uploadTitle').value.trim();
+  const category = document.getElementById('uploadCategory').value;
+  const product = document.getElementById('uploadProduct').value;
+
+  if (!title) { showToast('请填写素材名称', true); return; }
+  if (!category) { showToast('请选择分类', true); return; }
+  if (!product) { showToast('请选择产品', true); return; }
+
+  const submitBtn = document.getElementById('uploadSubmitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = '上传中...';
+
+  const progressEl = document.getElementById('uploadProgress');
+  const barFill = document.getElementById('progressBarFill');
+  const progressText = document.getElementById('progressText');
+  progressEl.classList.add('show');
+
+  try {
+    // 1. Generate file path
+    const isVideo = uploadFile.type.startsWith('video/');
+    const ext = uploadFile.name.split('.').pop().toLowerCase();
+    const timestamp = Date.now();
+    const folder = isVideo ? 'videos' : 'images';
+    const fileName = `${timestamp}_${uploadFile.name.replace(/[^a-zA-Z0-9\u4e00-\u9fa5_-]/g, '_')}`;
+    const storagePath = `${folder}/${fileName}`;
+
+    // 2. Upload file to Supabase Storage
+    progressText.textContent = '正在上传文件...';
+    barFill.style.width = '10%';
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(storagePath, uploadFile, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) throw uploadError;
+
+    barFill.style.width = '60%';
+    progressText.textContent = '文件上传完成，正在保存信息...';
+
+    // 3. Get public URL
+    const { data: urlData } = supabase.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(storagePath);
+    const fileUrl = urlData.publicUrl;
+
+    // 4. Parse tags
+    const tagsStr = document.getElementById('uploadTags').value.trim();
+    const tags = tagsStr ? tagsStr.split(/[,，、]/).map(t => t.trim()).filter(t => t) : [];
+
+    // 5. Generate ID
+    const id = `${isVideo ? 'vid' : 'img'}_${timestamp}`;
+
+    // 6. Insert record into database
+    const today = new Date().toISOString().split('T')[0];
+    const record = {
+      id: id,
+      title: title,
+      type: isVideo ? 'video' : 'image',
+      category: category,
+      product: product,
+      thumbnail: isVideo ? '' : fileUrl,
+      file_url: fileUrl,
+      tags: tags,
+      uploader: document.getElementById('uploadUploader').value.trim(),
+      date: today,
+      note: document.getElementById('uploadNote').value.trim()
+    };
+
+    const { error: insertError } = await supabase
+      .from('materials')
+      .insert([record]);
+
+    if (insertError) throw insertError;
+
+    barFill.style.width = '100%';
+    progressText.textContent = '上传成功！';
+
+    // 7. Refresh
+    await loadMaterials();
+    showToast('素材上传成功！');
+    closeUploadModal();
+
+  } catch (err) {
+    console.error('上传失败:', err);
+    showToast('上传失败：' + (err.message || '未知错误'), true);
+    barFill.style.width = '0%';
+    progressText.textContent = '上传失败，请重试';
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = '提交上传';
+  }
 }
 
 // ============================================================
