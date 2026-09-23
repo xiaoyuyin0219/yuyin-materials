@@ -1486,7 +1486,8 @@ function handleUpload() {
   var isVideo = uploadFile.type.startsWith('video/');
   var timestamp = Date.now();
   var folder = isVideo ? 'videos' : 'images';
-  var fileName = timestamp + '_' + uploadFile.name.replace(/[^a-zA-Z0-9\u4e00-\u9fa5_-]/g, '_');
+  var ext = uploadFile.name.split('.').pop().toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
+  var fileName = timestamp + '.' + (ext || 'bin');
   var storagePath = folder + '/' + fileName;
 
   progressText.textContent = '正在上传文件...';
