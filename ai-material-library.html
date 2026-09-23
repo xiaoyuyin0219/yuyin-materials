@@ -879,6 +879,10 @@
         <p>点击右上角「上传素材」按钮，拖入或选择视频/图片文件，填写素材名称、分类、产品等信息后提交。文件会自动上传到云端，无需手动操作 GitHub。视频首帧会自动作为封面显示。</p>
       </div>
       <div class="guide-item">
+        <h4>编辑素材</h4>
+        <p>每张卡片下方有「编辑」按钮，点击后弹出编辑弹窗，可修改素材名称、分类、产品、标签和备注等信息。修改完成后点击「保存修改」即可实时更新。</p>
+      </div>
+      <div class="guide-item">
         <h4>自定义标签</h4>
         <p>上传时可添加自定义标签（多个标签用逗号分隔），方便多维度检索。后续可在搜索框中通过标签名快速筛选。</p>
       </div>
@@ -981,6 +985,66 @@
   </div>
 </div>
 
+<!-- Edit Modal -->
+<div class="modal-overlay upload-modal" id="editModalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">&#9998; 编辑素材信息</div>
+      <button class="modal-close" id="editModalClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="upload-form" id="editForm">
+        <input type="hidden" id="editId">
+        <div class="form-group">
+          <label class="form-label">素材名称<span class="required">*</span></label>
+          <input class="form-input" type="text" id="editTitle" placeholder="输入素材名称">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">分类<span class="required">*</span></label>
+            <select class="form-select" id="editCategory">
+              <option value="">请选择分类</option>
+              <option value="shanglian">上脸</option>
+              <option value="chanpin">产品</option>
+              <option value="koubo">口播</option>
+              <option value="qita">其他</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">产品<span class="required">*</span></label>
+            <select class="form-select" id="editProduct">
+              <option value="">请选择产品</option>
+              <option value="dabaipen">大白喷</option>
+              <option value="yanshuang">眼霜</option>
+              <option value="gupen">固喷</option>
+              <option value="jiaoyuanbang">胶原棒</option>
+              <option value="youbang">油棒</option>
+              <option value="meibaicipao">美白次抛</option>
+              <option value="xibaomisu">细胞泌素眼霜</option>
+              <option value="general">通用</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">标签</label>
+          <input class="form-input" type="text" id="editTags" placeholder="多个标签用逗号分隔，如：AI数字人, 上脸, 美白">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">上传人</label>
+            <input class="form-input" type="text" id="editUploader" placeholder="你的名字">
+          </div>
+          <div class="form-group">
+            <label class="form-label">备注</label>
+            <input class="form-input" type="text" id="editNote" placeholder="可选备注">
+          </div>
+        </div>
+        <button class="upload-submit-btn" id="editSubmitBtn">保存修改</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Toast Notification -->
 <div class="toast" id="toast"></div>
 
@@ -1035,6 +1099,23 @@ var sb = {
           'Prefer': 'return=minimal'
         }),
         body: JSON.stringify(record)
+      }
+    ).then(function(r) {
+      if (!r.ok) return r.text().then(function(t) { throw new Error(t || 'HTTP ' + r.status); });
+    });
+  },
+
+  // 更新一条素材记录
+  update: function(id, fields) {
+    return fetchWithTimeout(
+      SUPABASE_URL + '/rest/v1/materials?id=eq.' + encodeURIComponent(id),
+      {
+        method: 'PATCH',
+        headers: sbHeaders({
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        }),
+        body: JSON.stringify(fields)
       }
     ).then(function(r) {
       if (!r.ok) return r.text().then(function(t) { throw new Error(t || 'HTTP ' + r.status); });
@@ -1235,6 +1316,7 @@ function renderGrid() {
       + (m.tags && m.tags.length ? '<div class="card-tags">' + m.tags.map(function(t) { return '<span class="card-tag">' + t + '</span>'; }).join('') + '</div>' : '')
       + '<div class="card-actions">'
       + '<a class="card-action-btn" href="' + fileUrl + '" download target="_blank" ' + (!fileUrl ? 'style="opacity:0.4;pointer-events:none"' : '') + '>&#11015; 下载</a>'
+      + '<button class="card-action-btn" onclick="openEditModal(\'' + m.id + '\')">&#9998; 编辑</button>'
       + '<button class="card-action-btn" onclick="copyMaterialLink(\'' + m.id + '\', this)">&#128279; 复制链接</button>'
       + '</div></div></div>';
   }).join('');
@@ -1279,6 +1361,12 @@ function bindEvents() {
     if (e.target === e.currentTarget) closeUploadModal();
   });
 
+  document.getElementById('editModalClose').addEventListener('click', closeEditModal);
+  document.getElementById('editModalOverlay').addEventListener('click', function(e) {
+    if (e.target === e.currentTarget) closeEditModal();
+  });
+  document.getElementById('editSubmitBtn').addEventListener('click', handleEdit);
+
   var dropzone = document.getElementById('uploadDropzone');
   var fileInput = document.getElementById('uploadFileInput');
 
@@ -1310,6 +1398,7 @@ function bindEvents() {
     if (e.key === 'Escape') {
       closeModal();
       closeUploadModal();
+      closeEditModal();
     }
   });
 }
@@ -1536,6 +1625,67 @@ function handleUpload() {
   }).then(function() {
     submitBtn.disabled = false;
     submitBtn.textContent = '提交上传';
+  });
+}
+
+// ============================================================
+//  编辑功能
+// ============================================================
+function openEditModal(id) {
+  var m = materials.find(function(item) { return item.id === id; });
+  if (!m) return;
+
+  document.getElementById('editId').value = m.id;
+  document.getElementById('editTitle').value = m.title || '';
+  document.getElementById('editCategory').value = m.category || '';
+  document.getElementById('editProduct').value = m.product || '';
+  document.getElementById('editTags').value = (m.tags && m.tags.length) ? m.tags.join(', ') : '';
+  document.getElementById('editUploader').value = m.uploader || '';
+  document.getElementById('editNote').value = m.note || '';
+
+  document.getElementById('editModalOverlay').classList.add('active');
+}
+
+function closeEditModal() {
+  document.getElementById('editModalOverlay').classList.remove('active');
+}
+
+function handleEdit() {
+  var id = document.getElementById('editId').value;
+  if (!id) return;
+
+  var title = document.getElementById('editTitle').value.trim();
+  var category = document.getElementById('editCategory').value;
+  var product = document.getElementById('editProduct').value;
+
+  if (!title) { showToast('请填写素材名称', true); return; }
+  if (!category) { showToast('请选择分类', true); return; }
+  if (!product) { showToast('请选择产品', true); return; }
+
+  var submitBtn = document.getElementById('editSubmitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = '保存中...';
+
+  var tagsStr = document.getElementById('editTags').value.trim();
+  var tags = tagsStr ? tagsStr.split(/[,，、]/).map(function(t) { return t.trim(); }).filter(function(t) { return t; }) : [];
+
+  sb.update(id, {
+    title: title,
+    category: category,
+    product: product,
+    tags: tags,
+    uploader: document.getElementById('editUploader').value.trim(),
+    note: document.getElementById('editNote').value.trim()
+  }).then(function() {
+    showToast('保存成功！');
+    closeEditModal();
+    loadMaterials();
+  }).catch(function(err) {
+    console.error('保存失败:', err);
+    showToast('保存失败：' + (err.message || '未知错误'), true);
+  }).then(function() {
+    submitBtn.disabled = false;
+    submitBtn.textContent = '保存修改';
   });
 }
 
