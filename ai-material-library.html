@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>谷雨 AI 素材库</title>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --bg-primary: #F5F0EB;
@@ -987,17 +986,92 @@
 
 <script>
 // ============================================================
-//  Supabase 配置
+//  Supabase 配置（纯 REST API，零外部依赖）
 // ============================================================
 const SUPABASE_URL = 'https://cpozjrxvltfqblbmueki.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwb3pqcnh2bHRmcWJsYm11ZWtpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwNzkxNzEsImV4cCI6MjEwNTY1NTE3MX0.uSVoggTIzSckCvo88YHyFIbeordkTYCburihHjDQv7Q';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const STORAGE_BUCKET = 'materials';
+
+// 通用请求头
+function sbHeaders(extra) {
+  return Object.assign({
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+  }, extra || {});
+}
+
+// 带超时的 fetch
+function fetchWithTimeout(url, options, ms) {
+  var ctrl = new AbortController();
+  options = options || {};
+  options.signal = ctrl.signal;
+  var timer = setTimeout(function() { ctrl.abort(); }, ms || 10000);
+  return fetch(url, options).finally(function() { clearTimeout(timer); });
+}
+
+// ============================================================
+//  Supabase REST API 封装
+// ============================================================
+var sb = {
+  // 查询素材列表
+  selectAll: function() {
+    return fetchWithTimeout(
+      SUPABASE_URL + '/rest/v1/materials?select=*&order=date.desc',
+      { headers: sbHeaders() }
+    ).then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  },
+
+  // 插入一条素材记录
+  insert: function(record) {
+    return fetchWithTimeout(
+      SUPABASE_URL + '/rest/v1/materials',
+      {
+        method: 'POST',
+        headers: sbHeaders({
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        }),
+        body: JSON.stringify(record)
+      }
+    ).then(function(r) {
+      if (!r.ok) return r.text().then(function(t) { throw new Error(t || 'HTTP ' + r.status); });
+    });
+  },
+
+  // 上传文件到 Storage
+  uploadFile: function(path, file, onProgress) {
+    return fetchWithTimeout(
+      SUPABASE_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + path,
+      {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+          'Content-Type': file.type || 'application/octet-stream',
+          'x-upsert': 'false'
+        },
+        body: file
+      },
+      60000
+    ).then(function(r) {
+      if (!r.ok) return r.text().then(function(t) { throw new Error(t || 'HTTP ' + r.status); });
+      return r.json();
+    });
+  },
+
+  // 获取文件公开 URL（纯拼接，不需要请求）
+  getPublicUrl: function(path) {
+    return SUPABASE_URL + '/storage/v1/object/public/' + STORAGE_BUCKET + '/' + path;
+  }
+};
 
 // ============================================================
 //  产品分类
 // ============================================================
-const products = [
+var products = [
   { id: "all",       name: "全部产品" },
   { id: "dabaipen",  name: "大白喷" },
   { id: "yanshuang", name: "眼霜" },
@@ -1009,7 +1083,7 @@ const products = [
   { id: "general",   name: "通用" }
 ];
 
-const categories = [
+var categories = [
   { id: "all",       name: "全部",   icon: "&#128194;" },
   { id: "shanglian", name: "上脸",   icon: "&#128133;" },
   { id: "chanpin",   name: "产品",   icon: "&#128230;" },
@@ -1020,72 +1094,65 @@ const categories = [
 // ============================================================
 //  应用状态
 // ============================================================
-let materials = [];
-let currentCategory = 'all';
-let currentProduct = 'all';
-let searchQuery = '';
-let sortBy = 'default';
-let uploadFile = null;
+var materials = [];
+var currentCategory = 'all';
+var currentProduct = 'all';
+var searchQuery = '';
+var sortBy = 'default';
+var uploadFile = null;
 
 // ============================================================
 //  初始化
 // ============================================================
-async function init() {
+function init() {
   renderCategoryFilter();
   renderProductFilter();
-  await loadMaterials();
+  loadMaterials();
   bindEvents();
 }
 
 // ============================================================
-//  从 Supabase 加载素材
+//  从 Supabase 加载素材（10 秒超时）
 // ============================================================
-async function loadMaterials() {
-  const loadingEl = document.getElementById('loadingState');
-  const gridEl = document.getElementById('materialGrid');
+function loadMaterials() {
+  var loadingEl = document.getElementById('loadingState');
+  var gridEl = document.getElementById('materialGrid');
+  gridEl.style.display = 'grid';
 
-  try {
-    const { data, error } = await supabase
-      .from('materials')
-      .select('*')
-      .order('date', { ascending: false });
-
-    if (error) throw error;
-
+  sb.selectAll().then(function(data) {
     materials = data || [];
-    loadingEl.style.display = 'none';
-    gridEl.style.display = 'grid';
-    renderGrid();
-  } catch (err) {
+  }).catch(function(err) {
     console.error('加载素材失败:', err);
-    loadingEl.innerHTML = '<p style="color:var(--accent-light);">加载失败，请刷新页面重试</p>';
-  }
+    materials = [];
+    showToast('加载失败：' + (err.message || '网络错误'), true);
+  }).then(function() {
+    loadingEl.style.display = 'none';
+    renderGrid();
+  });
 }
 
 // ============================================================
 //  渲染筛选器
 // ============================================================
 function renderCategoryFilter() {
-  const container = document.getElementById('categoryFilter');
-  container.innerHTML = '<span class="filter-label">分类</span>' + categories.map(cat => {
-    const count = cat.id === 'all'
+  var container = document.getElementById('categoryFilter');
+  container.innerHTML = '<span class="filter-label">分类</span>' + categories.map(function(cat) {
+    var count = cat.id === 'all'
       ? materials.length
-      : materials.filter(m => m.category === cat.id).length;
-    return `<div class="chip${cat.id === currentCategory ? ' active' : ''}" data-type="category" data-id="${cat.id}">
-      ${cat.icon} ${cat.name}<span class="count">${count}</span>
-    </div>`;
+      : materials.filter(function(m) { return m.category === cat.id; }).length;
+    return '<div class="chip' + (cat.id === currentCategory ? ' active' : '') + '" data-type="category" data-id="' + cat.id + '">'
+      + cat.icon + ' ' + cat.name + '<span class="count">' + count + '</span></div>';
   }).join('');
 }
 
 function renderProductFilter() {
-  const container = document.getElementById('productFilter');
-  container.innerHTML = '<span class="filter-label">产品</span>' + products.map(p => {
-    const count = p.id === 'all'
+  var container = document.getElementById('productFilter');
+  container.innerHTML = '<span class="filter-label">产品</span>' + products.map(function(p) {
+    var count = p.id === 'all'
       ? materials.length
-      : materials.filter(m => m.product === p.id).length;
-    return `<div class="chip${p.id === currentProduct ? ' active' : ''}" data-type="product" data-id="${p.id}">
-      ${p.name}<span class="count">${count}</span>
-    </div>`;
+      : materials.filter(function(m) { return m.product === p.id; }).length;
+    return '<div class="chip' + (p.id === currentProduct ? ' active' : '') + '" data-type="product" data-id="' + p.id + '">'
+      + p.name + '<span class="count">' + count + '</span></div>';
   }).join('');
 }
 
@@ -1093,20 +1160,20 @@ function renderProductFilter() {
 //  筛选 + 排序
 // ============================================================
 function getFilteredMaterials() {
-  let result = materials.filter(m => {
-    const matchCategory = currentCategory === 'all' || m.category === currentCategory;
-    const matchProduct = currentProduct === 'all' || m.product === currentProduct;
-    const matchSearch = !searchQuery ||
-      m.title.toLowerCase().includes(searchQuery) ||
-      (m.tags && m.tags.some && m.tags.some(t => t.toLowerCase().includes(searchQuery))) ||
-      (m.note && m.note.toLowerCase().includes(searchQuery));
+  var result = materials.filter(function(m) {
+    var matchCategory = currentCategory === 'all' || m.category === currentCategory;
+    var matchProduct = currentProduct === 'all' || m.product === currentProduct;
+    var matchSearch = !searchQuery ||
+      m.title.toLowerCase().indexOf(searchQuery) >= 0 ||
+      (m.tags && m.tags.some && m.tags.some(function(t) { return t.toLowerCase().indexOf(searchQuery) >= 0; })) ||
+      (m.note && m.note.toLowerCase().indexOf(searchQuery) >= 0);
     return matchCategory && matchProduct && matchSearch;
   });
 
   if (sortBy === 'newest') {
-    result.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    result.sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); });
   } else if (sortBy === 'name') {
-    result.sort((a, b) => a.title.localeCompare(b.title, 'zh'));
+    result.sort(function(a, b) { return a.title.localeCompare(b.title, 'zh'); });
   }
 
   return result;
@@ -1116,13 +1183,12 @@ function getFilteredMaterials() {
 //  渲染卡片网格
 // ============================================================
 function renderGrid() {
-  const grid = document.getElementById('materialGrid');
-  const empty = document.getElementById('emptyState');
-  const filtered = getFilteredMaterials();
+  var grid = document.getElementById('materialGrid');
+  var empty = document.getElementById('emptyState');
+  var filtered = getFilteredMaterials();
 
-  document.getElementById('statsText').innerHTML = `共 <strong>${filtered.length}</strong> 条素材`;
+  document.getElementById('statsText').innerHTML = '共 <strong>' + filtered.length + '</strong> 条素材';
 
-  // Update filter counts
   renderCategoryFilter();
   renderProductFilter();
 
@@ -1136,48 +1202,41 @@ function renderGrid() {
   empty.style.display = 'none';
   grid.style.display = 'grid';
 
-  grid.innerHTML = filtered.map((m, i) => {
-    const cat = categories.find(c => c.id === m.category);
-    const prod = products.find(p => p.id === m.product);
-    const catName = cat ? cat.name : m.category;
-    const prodName = prod ? prod.name : m.product;
+  grid.innerHTML = filtered.map(function(m, i) {
+    var cat = categories.find(function(c) { return c.id === m.category; });
+    var prod = products.find(function(p) { return p.id === m.product; });
+    var catName = cat ? cat.name : m.category;
+    var prodName = prod ? prod.name : m.product;
 
-    const fileUrl = m.file_url || '';
-    const isVideo = m.type === 'video';
+    var fileUrl = m.file_url || '';
+    var isVideo = m.type === 'video';
 
-    // Thumbnail
-    let thumbHtml;
+    var thumbHtml;
     if (m.thumbnail) {
-      thumbHtml = `<img src="${m.thumbnail}" alt="${m.title}" loading="lazy">`;
+      thumbHtml = '<img src="' + m.thumbnail + '" alt="' + m.title.replace(/"/g, '&quot;') + '" loading="lazy">';
     } else if (isVideo && fileUrl) {
-      thumbHtml = `<video class="card-video-thumb" src="${fileUrl}" preload="metadata" muted playsinline onloadeddata="this.currentTime=0" onerror="this.style.display='none';this.parentElement.querySelector('.thumb-fallback').style.display='flex'"></video><div class="thumb-fallback" style="display:none"><div class="placeholder">&#127909;</div></div>`;
+      thumbHtml = '<video class="card-video-thumb" src="' + fileUrl + '" preload="metadata" muted playsinline onloadeddata="this.currentTime=0" onerror="this.style.display=\'none\';this.parentElement.querySelector(\'.thumb-fallback\').style.display=\'flex\'"></video><div class="thumb-fallback" style="display:none"><div class="placeholder">&#127909;</div></div>';
     } else if (!isVideo && fileUrl) {
-      thumbHtml = `<img src="${fileUrl}" alt="${m.title}" loading="lazy" onerror="this.style.display='none';this.parentElement.querySelector('.thumb-fallback').style.display='flex'"><div class="thumb-fallback" style="display:none"><div class="placeholder">&#128247;</div></div>`;
+      thumbHtml = '<img src="' + fileUrl + '" alt="' + m.title.replace(/"/g, '&quot;') + '" loading="lazy" onerror="this.style.display=\'none\';this.parentElement.querySelector(\'.thumb-fallback\').style.display=\'flex\'"><div class="thumb-fallback" style="display:none"><div class="placeholder">&#128247;</div></div>';
     } else {
-      thumbHtml = `<div class="thumb-fallback"><div class="placeholder">${isVideo ? '&#127909;' : '&#128247;'}</div></div>`;
+      thumbHtml = '<div class="thumb-fallback"><div class="placeholder">' + (isVideo ? '&#127909;' : '&#128247;') + '</div></div>';
     }
 
-    const playIcon = isVideo ? '<div class="card-play-icon"></div>' : '';
+    var playIcon = isVideo ? '<div class="card-play-icon"></div>' : '';
 
-    return `<div class="card" style="animation-delay:${i * 0.04}s">
-      <div class="card-thumb" onclick="openModal('${m.id}')">
-        ${thumbHtml}
-        ${playIcon}
-        <div class="card-type-badge ${isVideo ? 'video' : 'image'}">${isVideo ? '视频' : '图片'}</div>
-      </div>
-      <div class="card-body">
-        <div class="card-title" onclick="openModal('${m.id}')">${m.title}</div>
-        <div class="card-meta">
-          <span class="card-product">${prodName}</span>
-          <span>${catName}</span>
-        </div>
-        ${m.tags && m.tags.length ? `<div class="card-tags">${m.tags.map(t => `<span class="card-tag">${t}</span>`).join('')}</div>` : ''}
-        <div class="card-actions">
-          <a class="card-action-btn" href="${fileUrl}" download target="_blank" ${!fileUrl ? 'style="opacity:0.4;pointer-events:none"' : ''}>&#11015; 下载</a>
-          <button class="card-action-btn" onclick="copyMaterialLink('${m.id}', this)">&#128279; 复制链接</button>
-        </div>
-      </div>
-    </div>`;
+    return '<div class="card" style="animation-delay:' + (i * 0.04) + 's">'
+      + '<div class="card-thumb" onclick="openModal(\'' + m.id + '\')">'
+      + thumbHtml + playIcon
+      + '<div class="card-type-badge ' + (isVideo ? 'video' : 'image') + '">' + (isVideo ? '视频' : '图片') + '</div>'
+      + '</div>'
+      + '<div class="card-body">'
+      + '<div class="card-title" onclick="openModal(\'' + m.id + '\')">' + m.title + '</div>'
+      + '<div class="card-meta"><span class="card-product">' + prodName + '</span><span>' + catName + '</span></div>'
+      + (m.tags && m.tags.length ? '<div class="card-tags">' + m.tags.map(function(t) { return '<span class="card-tag">' + t + '</span>'; }).join('') + '</div>' : '')
+      + '<div class="card-actions">'
+      + '<a class="card-action-btn" href="' + fileUrl + '" download target="_blank" ' + (!fileUrl ? 'style="opacity:0.4;pointer-events:none"' : '') + '>&#11015; 下载</a>'
+      + '<button class="card-action-btn" onclick="copyMaterialLink(\'' + m.id + '\', this)">&#128279; 复制链接</button>'
+      + '</div></div></div>';
   }).join('');
 }
 
@@ -1185,73 +1244,69 @@ function renderGrid() {
 //  事件绑定
 // ============================================================
 function bindEvents() {
-  document.getElementById('categoryFilter').addEventListener('click', e => {
-    const chip = e.target.closest('.chip');
+  document.getElementById('categoryFilter').addEventListener('click', function(e) {
+    var chip = e.target.closest('.chip');
     if (!chip) return;
     currentCategory = chip.dataset.id;
     renderGrid();
   });
 
-  document.getElementById('productFilter').addEventListener('click', e => {
-    const chip = e.target.closest('.chip');
+  document.getElementById('productFilter').addEventListener('click', function(e) {
+    var chip = e.target.closest('.chip');
     if (!chip) return;
     currentProduct = chip.dataset.id;
     renderGrid();
   });
 
-  document.getElementById('searchInput').addEventListener('input', e => {
+  document.getElementById('searchInput').addEventListener('input', function(e) {
     searchQuery = e.target.value.toLowerCase().trim();
     renderGrid();
   });
 
-  document.getElementById('sortSelect').addEventListener('change', e => {
+  document.getElementById('sortSelect').addEventListener('change', function(e) {
     sortBy = e.target.value;
     renderGrid();
   });
 
-  // Preview modal close
   document.getElementById('modalClose').addEventListener('click', closeModal);
-  document.getElementById('modalOverlay').addEventListener('click', e => {
+  document.getElementById('modalOverlay').addEventListener('click', function(e) {
     if (e.target === e.currentTarget) closeModal();
   });
 
-  // Upload modal
   document.getElementById('uploadBtn').addEventListener('click', openUploadModal);
   document.getElementById('uploadModalClose').addEventListener('click', closeUploadModal);
-  document.getElementById('uploadModalOverlay').addEventListener('click', e => {
+  document.getElementById('uploadModalOverlay').addEventListener('click', function(e) {
     if (e.target === e.currentTarget) closeUploadModal();
   });
 
-  // Upload dropzone
-  const dropzone = document.getElementById('uploadDropzone');
-  const fileInput = document.getElementById('uploadFileInput');
+  var dropzone = document.getElementById('uploadDropzone');
+  var fileInput = document.getElementById('uploadFileInput');
 
-  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('click', function() { fileInput.click(); });
 
-  dropzone.addEventListener('dragover', e => {
+  dropzone.addEventListener('dragover', function(e) {
     e.preventDefault();
     dropzone.classList.add('dragover');
   });
 
-  dropzone.addEventListener('dragleave', () => {
+  dropzone.addEventListener('dragleave', function() {
     dropzone.classList.remove('dragover');
   });
 
-  dropzone.addEventListener('drop', e => {
+  dropzone.addEventListener('drop', function(e) {
     e.preventDefault();
     dropzone.classList.remove('dragover');
     if (e.dataTransfer.files.length) handleFileSelect(e.dataTransfer.files[0]);
   });
 
-  fileInput.addEventListener('change', e => {
+  fileInput.addEventListener('change', function(e) {
     if (e.target.files.length) handleFileSelect(e.target.files[0]);
   });
 
   document.getElementById('uploadFileRemove').addEventListener('click', clearUploadFile);
-
   document.getElementById('uploadSubmitBtn').addEventListener('click', handleUpload);
 
-  document.addEventListener('keydown', e => {
+  document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
       closeModal();
       closeUploadModal();
@@ -1263,19 +1318,19 @@ function bindEvents() {
 //  复制链接
 // ============================================================
 function copyMaterialLink(id, btnEl) {
-  const url = window.location.origin + window.location.pathname + '#material-' + id;
-  navigator.clipboard.writeText(url).then(() => {
+  var url = window.location.origin + window.location.pathname + '#material-' + id;
+  navigator.clipboard.writeText(url).then(function() {
     if (btnEl) {
       btnEl.classList.add('copied');
       btnEl.innerHTML = '&#10003; 已复制';
-      setTimeout(() => {
+      setTimeout(function() {
         btnEl.classList.remove('copied');
         btnEl.innerHTML = '&#128279; 复制链接';
       }, 2000);
     }
     showToast('链接已复制到剪贴板');
-  }).catch(() => {
-    const ta = document.createElement('textarea');
+  }).catch(function() {
+    var ta = document.createElement('textarea');
     ta.value = url;
     document.body.appendChild(ta);
     ta.select();
@@ -1289,41 +1344,41 @@ function copyMaterialLink(id, btnEl) {
 //  Toast 提示
 // ============================================================
 function showToast(msg, isError) {
-  const toast = document.getElementById('toast');
+  var toast = document.getElementById('toast');
   toast.textContent = msg;
   toast.className = 'toast' + (isError ? ' error' : '');
   toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 2500);
+  setTimeout(function() { toast.classList.remove('show'); }, 2500);
 }
 
 // ============================================================
 //  详情弹窗
 // ============================================================
 function openModal(id) {
-  const m = materials.find(item => item.id === id);
+  var m = materials.find(function(item) { return item.id === id; });
   if (!m) return;
 
-  const cat = categories.find(c => c.id === m.category);
-  const prod = products.find(p => p.id === m.product);
-  const overlay = document.getElementById('modalOverlay');
+  var cat = categories.find(function(c) { return c.id === m.category; });
+  var prod = products.find(function(p) { return p.id === m.product; });
+  var overlay = document.getElementById('modalOverlay');
 
   document.getElementById('modalTitle').textContent = m.title;
 
-  const mediaEl = document.getElementById('modalMedia');
-  const fileUrl = m.file_url || '';
+  var mediaEl = document.getElementById('modalMedia');
+  var fileUrl = m.file_url || '';
 
   if (fileUrl) {
     if (m.type === 'video') {
-      mediaEl.innerHTML = `<video src="${fileUrl}" controls autoplay></video>`;
+      mediaEl.innerHTML = '<video src="' + fileUrl + '" controls autoplay></video>';
     } else {
-      mediaEl.innerHTML = `<img src="${fileUrl}" alt="${m.title}">`;
+      mediaEl.innerHTML = '<img src="' + fileUrl + '" alt="' + m.title + '">';
     }
   } else {
-    mediaEl.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-muted);font-size:14px;">暂无预览文件</div>`;
+    mediaEl.innerHTML = '<div style="padding:60px;text-align:center;color:var(--text-muted);font-size:14px;">暂无预览文件</div>';
   }
 
-  const infoEl = document.getElementById('modalInfo');
-  const infoItems = [];
+  var infoEl = document.getElementById('modalInfo');
+  var infoItems = [];
   if (prod) infoItems.push({ label: '产品', value: prod.name });
   if (cat) infoItems.push({ label: '分类', value: cat.name });
   infoItems.push({ label: '类型', value: m.type === 'video' ? '视频' : '图片' });
@@ -1332,18 +1387,13 @@ function openModal(id) {
   if (m.tags && m.tags.length) infoItems.push({ label: '标签', value: m.tags.join(' / ') });
   if (m.note) infoItems.push({ label: '备注', value: m.note });
 
-  infoEl.innerHTML = infoItems.map(item =>
-    `<div class="modal-info-item">
-      <span class="modal-info-label">${item.label}</span>
-      <span class="modal-info-value">${item.value}</span>
-    </div>`
-  ).join('');
+  infoEl.innerHTML = infoItems.map(function(item) {
+    return '<div class="modal-info-item"><span class="modal-info-label">' + item.label + '</span><span class="modal-info-value">' + item.value + '</span></div>';
+  }).join('');
 
-  const actionsEl = document.getElementById('modalActions');
-  actionsEl.innerHTML = `
-    <a class="modal-btn primary" href="${fileUrl}" download target="_blank" ${!fileUrl ? 'style="opacity:0.4;pointer-events:none"' : ''}>&#11015; 下载素材</a>
-    <button class="modal-btn secondary" onclick="copyMaterialLink('${m.id}')">&#128279; 复制链接</button>
-  `;
+  var actionsEl = document.getElementById('modalActions');
+  actionsEl.innerHTML = '<a class="modal-btn primary" href="' + fileUrl + '" download target="_blank" ' + (!fileUrl ? 'style="opacity:0.4;pointer-events:none"' : '') + '>&#11015; 下载素材</a>'
+    + '<button class="modal-btn secondary" onclick="copyMaterialLink(\'' + m.id + '\')">&#128279; 复制链接</button>';
 
   overlay.classList.add('active');
 }
@@ -1367,15 +1417,15 @@ function closeUploadModal() {
 }
 
 function handleFileSelect(file) {
-  const validTypes = ['video/mp4', 'video/quicktime', 'image/jpeg', 'image/png', 'video/webm'];
-  if (!validTypes.some(t => file.type.startsWith(t.split('/')[0]))) {
+  var validTypes = ['video/mp4', 'video/quicktime', 'image/jpeg', 'image/png', 'video/webm'];
+  if (!validTypes.some(function(t) { return file.type.startsWith(t.split('/')[0]); })) {
     showToast('不支持的文件格式', true);
     return;
   }
 
   uploadFile = file;
 
-  const isVideo = file.type.startsWith('video/');
+  var isVideo = file.type.startsWith('video/');
   document.getElementById('uploadFileIcon').textContent = isVideo ? '\uD83C\uDFAC' : '\uD83D\uDDBC\uFE0F';
   document.getElementById('uploadFileName').textContent = file.name;
   document.getElementById('uploadFileSize').textContent = formatFileSize(file.size);
@@ -1383,11 +1433,8 @@ function handleFileSelect(file) {
   document.getElementById('uploadDropzone').style.display = 'none';
   document.getElementById('uploadForm').style.display = 'flex';
 
-  // Auto-fill title from filename (remove extension)
-  const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+  var nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
   document.getElementById('uploadTitle').value = nameWithoutExt;
-
-  // Auto-detect type
   document.getElementById('uploadSubmitBtn').disabled = false;
 }
 
@@ -1416,67 +1463,52 @@ function formatFileSize(bytes) {
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
-async function handleUpload() {
+function handleUpload() {
   if (!uploadFile) return;
 
-  const title = document.getElementById('uploadTitle').value.trim();
-  const category = document.getElementById('uploadCategory').value;
-  const product = document.getElementById('uploadProduct').value;
+  var title = document.getElementById('uploadTitle').value.trim();
+  var category = document.getElementById('uploadCategory').value;
+  var product = document.getElementById('uploadProduct').value;
 
   if (!title) { showToast('请填写素材名称', true); return; }
   if (!category) { showToast('请选择分类', true); return; }
   if (!product) { showToast('请选择产品', true); return; }
 
-  const submitBtn = document.getElementById('uploadSubmitBtn');
+  var submitBtn = document.getElementById('uploadSubmitBtn');
   submitBtn.disabled = true;
   submitBtn.textContent = '上传中...';
 
-  const progressEl = document.getElementById('uploadProgress');
-  const barFill = document.getElementById('progressBarFill');
-  const progressText = document.getElementById('progressText');
+  var progressEl = document.getElementById('uploadProgress');
+  var barFill = document.getElementById('progressBarFill');
+  var progressText = document.getElementById('progressText');
   progressEl.classList.add('show');
 
-  try {
-    // 1. Generate file path
-    const isVideo = uploadFile.type.startsWith('video/');
-    const ext = uploadFile.name.split('.').pop().toLowerCase();
-    const timestamp = Date.now();
-    const folder = isVideo ? 'videos' : 'images';
-    const fileName = `${timestamp}_${uploadFile.name.replace(/[^a-zA-Z0-9\u4e00-\u9fa5_-]/g, '_')}`;
-    const storagePath = `${folder}/${fileName}`;
+  var isVideo = uploadFile.type.startsWith('video/');
+  var timestamp = Date.now();
+  var folder = isVideo ? 'videos' : 'images';
+  var fileName = timestamp + '_' + uploadFile.name.replace(/[^a-zA-Z0-9\u4e00-\u9fa5_-]/g, '_');
+  var storagePath = folder + '/' + fileName;
 
-    // 2. Upload file to Supabase Storage
-    progressText.textContent = '正在上传文件...';
-    barFill.style.width = '10%';
+  progressText.textContent = '正在上传文件...';
+  barFill.style.width = '10%';
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .upload(storagePath, uploadFile, {
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (uploadError) throw uploadError;
-
+  // 1. Upload file to Storage
+  sb.uploadFile(storagePath, uploadFile).then(function() {
     barFill.style.width = '60%';
     progressText.textContent = '文件上传完成，正在保存信息...';
 
-    // 3. Get public URL
-    const { data: urlData } = supabase.storage
-      .from(STORAGE_BUCKET)
-      .getPublicUrl(storagePath);
-    const fileUrl = urlData.publicUrl;
+    // 2. Get public URL
+    var fileUrl = sb.getPublicUrl(storagePath);
 
-    // 4. Parse tags
-    const tagsStr = document.getElementById('uploadTags').value.trim();
-    const tags = tagsStr ? tagsStr.split(/[,，、]/).map(t => t.trim()).filter(t => t) : [];
+    // 3. Parse tags
+    var tagsStr = document.getElementById('uploadTags').value.trim();
+    var tags = tagsStr ? tagsStr.split(/[,，、]/).map(function(t) { return t.trim(); }).filter(function(t) { return t; }) : [];
 
-    // 5. Generate ID
-    const id = `${isVideo ? 'vid' : 'img'}_${timestamp}`;
+    // 4. Insert record
+    var id = (isVideo ? 'vid' : 'img') + '_' + timestamp;
+    var today = new Date().toISOString().split('T')[0];
 
-    // 6. Insert record into database
-    const today = new Date().toISOString().split('T')[0];
-    const record = {
+    return sb.insert({
       id: id,
       title: title,
       type: isVideo ? 'video' : 'image',
@@ -1488,31 +1520,22 @@ async function handleUpload() {
       uploader: document.getElementById('uploadUploader').value.trim(),
       date: today,
       note: document.getElementById('uploadNote').value.trim()
-    };
-
-    const { error: insertError } = await supabase
-      .from('materials')
-      .insert([record]);
-
-    if (insertError) throw insertError;
-
+    });
+  }).then(function() {
     barFill.style.width = '100%';
     progressText.textContent = '上传成功！';
-
-    // 7. Refresh
-    await loadMaterials();
     showToast('素材上传成功！');
+    loadMaterials();
     closeUploadModal();
-
-  } catch (err) {
+  }).catch(function(err) {
     console.error('上传失败:', err);
     showToast('上传失败：' + (err.message || '未知错误'), true);
     barFill.style.width = '0%';
     progressText.textContent = '上传失败，请重试';
-  } finally {
+  }).then(function() {
     submitBtn.disabled = false;
     submitBtn.textContent = '提交上传';
-  }
+  });
 }
 
 // ============================================================
