@@ -1532,7 +1532,7 @@ function renderGrid() {
       + (m.tags && m.tags.length ? '<div class="card-tags">' + m.tags.map(function(t) { return '<span class="card-tag">' + t + '</span>'; }).join('') + '</div>' : '')
       + (m.prompt ? '<div class="card-tags" style="margin-top:4px"><span class="card-tag" style="background:rgba(184,160,112,0.15);color:var(--orange)">&#128221; 含提示词</span>' + (m.ref_images && m.ref_images.length ? '<span class="card-tag" style="background:rgba(143,168,130,0.12);color:var(--green)">&#128247; ' + m.ref_images.length + '张参考图</span>' : '') + '</div>' : (m.ref_images && m.ref_images.length ? '<div class="card-tags" style="margin-top:4px"><span class="card-tag" style="background:rgba(143,168,130,0.12);color:var(--green)">&#128247; ' + m.ref_images.length + '张参考图</span></div>' : ''))
       + '<div class="card-actions">'
-      + '<a class="card-action-btn" href="' + fileUrl + '" download target="_blank" ' + (!fileUrl ? 'style="opacity:0.4;pointer-events:none"' : '') + '>&#11015; 下载</a>'
+      + '<button type="button" class="card-action-btn" onclick="downloadMaterial(\'' + m.id + '\', this)" ' + (!fileUrl ? 'disabled style="opacity:0.4;pointer-events:none"' : '') + '>&#11015; 下载</button>'
       + '<button class="card-action-btn" onclick="openEditModal(\'' + m.id + '\')">&#9998; 编辑</button>'
       + '<button class="card-action-btn" onclick="copyMaterialLink(\'' + m.id + '\', this)">&#128279; 复制链接</button>'
       + '</div></div></div>';
@@ -1673,6 +1673,53 @@ function copyMaterialLink(id, btnEl) {
 }
 
 // ============================================================
+//  直接下载素材（跨域文件先读取为 Blob，避免跳转播放页）
+// ============================================================
+function downloadMaterial(id, btnEl) {
+  var m = materials.find(function(item) { return item.id === id; });
+  if (!m || !m.file_url) {
+    showToast('该素材暂无可下载文件', true);
+    return;
+  }
+
+  var originalHtml = btnEl ? btnEl.innerHTML : '';
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.innerHTML = '&#8987; 下载中...';
+  }
+  showToast('正在准备下载，请稍候...');
+
+  fetch(m.file_url).then(function(response) {
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    return response.blob();
+  }).then(function(blob) {
+    var urlPath = m.file_url.split('?')[0];
+    var extMatch = urlPath.match(/\.([a-zA-Z0-9]{2,5})$/);
+    var ext = extMatch ? '.' + extMatch[1].toLowerCase() : (m.type === 'video' ? '.mp4' : '.jpg');
+    var safeTitle = (m.title || '素材').replace(/[\\/:*?"<>|]/g, '_').trim() || '素材';
+    var fileName = safeTitle.toLowerCase().endsWith(ext) ? safeTitle : safeTitle + ext;
+    var blobUrl = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = fileName;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 1000);
+    showToast('下载已开始');
+  }).catch(function(err) {
+    console.error('下载失败:', err);
+    showToast('下载失败，请检查网络后重试', true);
+  }).then(function() {
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.innerHTML = originalHtml;
+    }
+  });
+}
+
+// ============================================================
 //  Toast 提示
 // ============================================================
 function showToast(msg, isError) {
@@ -1744,7 +1791,7 @@ function openModal(id) {
   infoEl.parentNode.insertBefore(extraSection, infoEl.nextSibling);
 
   var actionsEl = document.getElementById('modalActions');
-  actionsEl.innerHTML = '<a class="modal-btn primary" href="' + fileUrl + '" download target="_blank" ' + (!fileUrl ? 'style="opacity:0.4;pointer-events:none"' : '') + '>&#11015; 下载素材</a>'
+  actionsEl.innerHTML = '<button type="button" class="modal-btn primary" onclick="downloadMaterial(\'' + m.id + '\', this)" ' + (!fileUrl ? 'disabled style="opacity:0.4;pointer-events:none"' : '') + '>&#11015; 下载素材</button>'
     + '<button class="modal-btn secondary" onclick="copyMaterialLink(\'' + m.id + '\')">&#128279; 复制链接</button>';
 
   overlay.classList.add('active');
