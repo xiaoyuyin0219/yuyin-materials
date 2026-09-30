@@ -1174,6 +1174,7 @@
               <option value="youbang">油棒</option>
               <option value="meibaicipao">美白次抛</option>
               <option value="xibaomisu">细胞泌素眼霜</option>
+              <option value="mianpian">棉片</option>
               <option value="general">通用</option>
             </select>
           </div>
@@ -1249,6 +1250,7 @@
               <option value="youbang">油棒</option>
               <option value="meibaicipao">美白次抛</option>
               <option value="xibaomisu">细胞泌素眼霜</option>
+              <option value="mianpian">棉片</option>
               <option value="general">通用</option>
             </select>
           </div>
@@ -1438,6 +1440,7 @@ var products = [
   { id: "youbang",   name: "油棒" },
   { id: "meibaicipao",  name: "美白次抛" },
   { id: "xibaomisu", name: "细胞泌素眼霜" },
+  { id: "mianpian",  name: "棉片" },
   { id: "general",   name: "通用" }
 ];
 
@@ -1473,6 +1476,41 @@ function init() {
 }
 
 // ============================================================
+//  锚点直链导航（#material-id）
+// ============================================================
+function handleMaterialHash() {
+  var hash = window.location.hash || '';
+  if (!hash || hash.indexOf('#material-') !== 0) return;
+  var id = hash.replace('#material-', '');
+  if (!id) return;
+
+  var match = materials.find(function(item) { return item.id === id; });
+  if (match) {
+    // 自动展开详情，让分享链接接收者直接看到具体素材
+    setTimeout(function() { openModal(id); }, 200);
+    return;
+  }
+
+  // 未匹配素材时尝试滚动到对应卡片并给视觉提示
+  var safeId = id.replace(/['"\\]/g, '');
+  var target = null;
+  var cards = document.querySelectorAll('.card');
+  for (var i = 0; i < cards.length; i++) {
+    var thumb = cards[i].querySelector('.card-thumb');
+    var onclickAttr = thumb ? thumb.getAttribute('onclick') : '';
+    if (onclickAttr && onclickAttr.indexOf("openModal('" + safeId + "')") >= 0) {
+      target = cards[i];
+      break;
+    }
+  }
+  if (target) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target.style.outline = '3px solid ' + getComputedStyle(document.documentElement).getPropertyValue('--accent');
+    setTimeout(function() { target.style.outline = ''; }, 2500);
+  }
+}
+
+// ============================================================
 //  从 Supabase 加载素材（10 秒超时）
 // ============================================================
 function loadMaterials() {
@@ -1489,6 +1527,7 @@ function loadMaterials() {
   }).then(function() {
     loadingEl.style.display = 'none';
     renderGrid();
+    handleMaterialHash();
   });
 }
 
@@ -1703,6 +1742,9 @@ function bindEvents() {
       closeEditModal();
     }
   });
+
+  // 直链导航：用户在已打开页面中手动修改锚点时也能重新定位
+  window.addEventListener('hashchange', handleMaterialHash);
 }
 
 // ============================================================
@@ -1918,6 +1960,10 @@ function closeModal() {
   document.getElementById('modalMedia').innerHTML = '';
   var extras = document.querySelectorAll('#modalOverlay .modal-extra-section');
   extras.forEach(function(el) { el.remove(); });
+  // 关闭详情时同步清理地址栏锚点，避免用户刷新页面后再次自动弹出旧素材
+  if (window.history && window.history.replaceState && window.location.hash.indexOf('#material-') === 0) {
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
 }
 
 // ============================================================
