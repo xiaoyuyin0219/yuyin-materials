@@ -809,6 +809,122 @@
 
   .prompt-var-tag .var-icon { font-size: 11px; opacity: 0.7; }
 
+  /* 自动识别的可变量词（虚线边框浅色背景） */
+  .prompt-auto-var {
+    display: inline-block;
+    padding: 0 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: help;
+    border: 1px dashed;
+    transition: var(--transition);
+  }
+  .prompt-auto-var:hover { border-style: solid; }
+  .prompt-auto-var.t-product { background: rgba(232, 180, 160, 0.18); border-color: rgba(232, 180, 160, 0.7); color: #B07060; }
+  .prompt-auto-var.t-light   { background: rgba(184, 212, 184, 0.22); border-color: rgba(184, 212, 184, 0.8); color: #5F8C5F; }
+  .prompt-auto-var.t-action  { background: rgba(196, 184, 224, 0.22); border-color: rgba(196, 184, 224, 0.8); color: #7060A8; }
+  .prompt-auto-var.t-tone    { background: rgba(224, 207, 160, 0.22); border-color: rgba(224, 207, 160, 0.8); color: #8A7040; }
+  .prompt-auto-var.t-camera  { background: rgba(168, 200, 224, 0.22); border-color: rgba(168, 200, 224, 0.8); color: #4070A0; }
+  .prompt-auto-var.t-skin    { background: rgba(240, 180, 210, 0.22); border-color: rgba(240, 180, 210, 0.8); color: #B05080; }
+  .prompt-auto-var.t-aspect  { background: rgba(210, 190, 165, 0.22); border-color: rgba(210, 190, 165, 0.8); color: #806040; }
+
+  /* Prompt 区域标题 + 按钮组 */
+  .prompt-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 16px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .prompt-section-header .section-label { margin-top: 0; }
+  .prompt-section-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .prompt-action-btn {
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: var(--transition);
+    background: var(--accent);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .prompt-action-btn:hover { background: var(--accent-strong); }
+  .prompt-action-btn.secondary {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+  }
+  .prompt-action-btn.secondary:hover { background: var(--bg-hover); }
+
+  /* 用模板生成 - 变量填写区 */
+  .template-fill-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .template-fill-row label {
+    min-width: 70px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  .template-fill-row label .fill-tag {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-right: 4px;
+  }
+  .template-fill-row input {
+    flex: 1;
+    padding: 7px 10px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-primary);
+    outline: none;
+    font-family: inherit;
+  }
+  .template-fill-row input:focus { border-color: var(--accent); }
+
+  .template-fill-preview {
+    background: var(--bg-secondary);
+    border-left: 3px solid var(--accent);
+    padding: 12px 14px;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    font-size: 13px;
+    color: var(--text-primary);
+    line-height: 1.7;
+    margin-top: 14px;
+    white-space: pre-wrap;
+    min-height: 60px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .template-fill-preview .filled {
+    background: linear-gradient(transparent 60%, rgba(196, 168, 130, 0.3) 60%);
+    font-weight: 500;
+  }
+  .template-fill-preview .empty-hint {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
   /* ===== Reference Media ===== */
   .ref-images-grid {
     display: flex;
@@ -1118,6 +1234,34 @@
       <div class="modal-media" id="modalMedia"></div>
       <div class="modal-info" id="modalInfo"></div>
       <div class="modal-actions" id="modalActions"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Template Fill Modal（用模板生成） -->
+<div class="modal-overlay" id="templateFillOverlay">
+  <div class="modal" style="max-width: 760px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">📝 用模板生成新提示词</div>
+        <div class="modal-subtitle" id="templateFillSubtitle" style="font-size:12px;color:var(--text-secondary);margin-top:2px;"></div>
+      </div>
+      <button class="modal-close" id="templateFillClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">
+        替换下方变量即可生成一条新的提示词，留空会保留原词。
+      </p>
+      <div id="templateFillForm"></div>
+      <div style="margin-top:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <label style="font-size:12px;color:var(--text-secondary);font-weight:600;">生成结果（实时预览）</label>
+          <button type="button" class="prompt-action-btn secondary" onclick="copyTemplateFillResult()">📋 复制</button>
+        </div>
+        <div id="templateFillPreview" class="template-fill-preview">
+          <span class="empty-hint">填写变量后实时预览...</span>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1676,6 +1820,11 @@ function bindEvents() {
     if (e.target === e.currentTarget) closeModal();
   });
 
+  document.getElementById('templateFillClose').addEventListener('click', closeTemplateFill);
+  document.getElementById('templateFillOverlay').addEventListener('click', function(e) {
+    if (e.target === e.currentTarget) closeTemplateFill();
+  });
+
   document.getElementById('uploadBtn').addEventListener('click', openUploadModal);
   document.getElementById('uploadModalClose').addEventListener('click', closeUploadModal);
   document.getElementById('uploadModalOverlay').addEventListener('click', function(e) {
@@ -1920,10 +2069,15 @@ function openModal(id) {
     return '<div class="modal-info-item"><span class="modal-info-label">' + item.label + '</span><span class="modal-info-value">' + item.value + '</span></div>';
   }).join('');
 
-  // Prompt + variables section
+  // Prompt + variables section（含模板生成按钮组，仅当有 prompt 时显示）
   var promptHtml = '';
   if (m.prompt) {
-    promptHtml = '<div class="section-label">AI 创作提示词</div>' + renderPromptWithVars(m.prompt);
+    promptHtml = '<div class="prompt-section-header">' +
+      '<div class="section-label" style="margin-top:0;">AI 创作提示词</div>' +
+      '<div class="prompt-section-actions">' +
+        '<button type="button" class="prompt-action-btn" onclick="openTemplateFill(\'' + m.id + '\')">📝 用模板生成</button>' +
+      '</div>' +
+    '</div>' + renderPromptWithVars(m.prompt);
   }
 
   // Reference media section (legacy image URLs remain compatible)
@@ -2125,25 +2279,201 @@ function renderEditNewRefThumbs() {
 }
 
 // ============================================================
+//  提示词模板生成：词库 + 变量识别
+// ============================================================
+var LIB_WORDS = {
+  // 产品：实际提示词里出现的产品描述 + 已上架产品名
+  product: [
+    '谷雨金色精华棒', '金色精华棒', '金色护肤品', '透明眼霜',
+    '眼霜', '喷雾',
+    '山参油棒', '白千控油棉片', '油棒', '胶原棒',
+    '细胞泌素眼霜', '美白次抛', '次抛精华', '精华', '面膜', '面霜', '洁面', '棉片'
+  ],
+  // 光线：数据里出现的暖自然光 + 常见补光
+  light: [
+    '暖自然光', '自然光', '柔光', '暖光', '硬光', '清冷光', '干净光', '侧光', '顶光', '逆光'
+  ],
+  // 镜头/运镜：数据里最高频的"固定机位/固定镜头/无推拉摇移"组合 + 特写类
+  camera: [
+    '无推拉摇移等运镜', '固定机位', '固定镜头',
+    '聚焦脸部特写', '脸部特写', '特写',
+    '微距', '极微距', '近景', '中景', '全景', '俯拍', '仰拍', '平视'
+  ],
+  // 皮肤状态：秦岚油棒/眼纹痛点反复出现的结局描述
+  skin: [
+    '光滑而平整', '光滑平整', '水润光泽', '毛孔细腻',
+    '自然水光感', '光泽柔和', '平整饱满', '干净通透'
+  ],
+  // 动作：实际高频动作短语（长词在前）
+  action: [
+    '来回涂抹', '均匀覆盖', '完整覆盖', '完全覆盖', '逐渐被皮肤吸收',
+    '涂抹', '划向', '伸向', '撕开', '展开', '喷洒', '覆盖', '吸收',
+    '悬浮', '靠近', '放下', '转向', '排布', '滑入'
+  ],
+  // 风格/色调：实际数据出现的 + 常用氛围词
+  tone: [
+    '实拍美妆带货短视频', '广告风格', '画面干净', '质感真实',
+    '暖色调', '冷色调', '米色渐变', '蓝白渐变', '莫兰迪',
+    '高饱和', '低饱和', '极简', '奶油色', '清冷'
+  ],
+  // 画幅：单独分类
+  aspect: [
+    '竖屏 9:16', '9:16', '竖屏'
+  ]
+};
+
+var LIB_TYPE_LABEL = {
+  product: '产品',
+  light:   '光线',
+  camera:  '镜头',
+  skin:    '皮肤状态',
+  action:  '动作',
+  tone:    '风格',
+  aspect:  '画幅'
+};
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function escapeAttr(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function escapeHtmlAttr(s) {
+  return escapeAttr(s);
+}
+
+// ============================================================
+//  词库匹配（子串级，最长优先，去重叠）
+// ============================================================
+function findDictMatches(text, libWords) {
+  if (!text) return [];
+  var candidates = [];
+  for (var k in libWords) {
+    var words = libWords[k];
+    for (var i = 0; i < words.length; i++) {
+      var word = words[i];
+      if (!word || word.length < 2) continue;
+      var idx = 0;
+      while ((idx = text.indexOf(word, idx)) >= 0) {
+        candidates.push({ start: idx, end: idx + word.length, text: word, type: k });
+        idx += word.length;
+      }
+    }
+  }
+  // 排序：长度优先（长词先匹配），位置次之
+  candidates.sort(function(a, b) {
+    var lenDiff = (b.end - b.start) - (a.end - a.start);
+    if (lenDiff !== 0) return lenDiff;
+    return a.start - b.start;
+  });
+  // 去重叠：跳过被已保留项覆盖的候选
+  var kept = [];
+  for (var i = 0; i < candidates.length; i++) {
+    var c = candidates[i];
+    var overlap = false;
+    for (var j = 0; j < kept.length; j++) {
+      var k = kept[j];
+      if (c.start < k.end && c.end > k.start) { overlap = true; break; }
+    }
+    if (!overlap) kept.push(c);
+  }
+  kept.sort(function(a, b) { return a.start - b.start; });
+  return kept;
+}
+
+// 解析整段提示词：返回已标记区域 + 自动匹配（跳过已标记区域）
+function parsePromptForVars(promptText) {
+  if (!promptText) return { markedRanges: [], markedVars: [], autoMatches: [] };
+  var varRegex = /\{([^{}]+)\}/g;
+  var markedRanges = [];
+  var markedVars = [];
+  var match;
+  varRegex.lastIndex = 0;
+  while ((match = varRegex.exec(promptText)) !== null) {
+    markedRanges.push({ start: match.index, end: match.index + match[0].length, varName: match[1] });
+    if (markedVars.indexOf(match[1]) < 0) markedVars.push(match[1]);
+  }
+  markedRanges.sort(function(a, b) { return a.start - b.start; });
+  // 找出标记区域之外的纯文本段
+  var zones = [];
+  var cursor = 0;
+  for (var i = 0; i < markedRanges.length; i++) {
+    var r = markedRanges[i];
+    if (cursor < r.start) zones.push({ start: cursor, end: r.start });
+    cursor = r.end;
+  }
+  if (cursor < promptText.length) zones.push({ start: cursor, end: promptText.length });
+  // 在每个 zone 里找词库匹配
+  var autoMatches = [];
+  for (var i = 0; i < zones.length; i++) {
+    var zone = zones[i];
+    var zoneText = promptText.slice(zone.start, zone.end);
+    var ms = findDictMatches(zoneText, LIB_WORDS);
+    for (var j = 0; j < ms.length; j++) {
+      ms[j].start += zone.start;
+      ms[j].end += zone.start;
+      autoMatches.push(ms[j]);
+    }
+  }
+  // 跨 zone 去重（理论上不会跨，但保险起见）
+  autoMatches.sort(function(a, b) {
+    var lenDiff = (b.end - b.start) - (a.end - a.start);
+    if (lenDiff !== 0) return lenDiff;
+    return a.start - b.start;
+  });
+  var keptAuto = [];
+  for (var i = 0; i < autoMatches.length; i++) {
+    var c = autoMatches[i];
+    var overlap = false;
+    for (var j = 0; j < keptAuto.length; j++) {
+      var k = keptAuto[j];
+      if (c.start < k.end && c.end > k.start) { overlap = true; break; }
+    }
+    if (!overlap) keptAuto.push(c);
+  }
+  keptAuto.sort(function(a, b) { return a.start - b.start; });
+  return { markedRanges: markedRanges, markedVars: markedVars, autoMatches: keptAuto };
+}
+
+// ============================================================
 //  提示词变量高亮渲染
 // ============================================================
 function renderPromptWithVars(promptText) {
   if (!promptText) return '';
-  var varRegex = /\{([^{}]+)\}/g;
-  var vars = [];
-  var match;
-  while ((match = varRegex.exec(promptText)) !== null) {
-    if (vars.indexOf(match[1]) < 0) vars.push(match[1]);
+  var parsed = parsePromptForVars(promptText);
+
+  // 合并已标记区域 + 自动匹配，统一按位置排序
+  var highlights = [];
+  for (var i = 0; i < parsed.markedRanges.length; i++) {
+    var r = parsed.markedRanges[i];
+    highlights.push({ start: r.start, end: r.end, kind: 'marked', varName: r.varName, text: promptText.slice(r.start, r.end) });
   }
-  // Highlight variables inline
-  var html = promptText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/\{([^{}]+)\}/g, function(m, v) {
-      return '<span class="prompt-var-chip" title="点击复制变量" onclick="copyVarChip(\'' + v.replace(/'/g, "\\'") + '\')">' + m + '</span>';
-    });
-  // Variable tags bar
-  var tagsHtml = vars.length ? '<div class="prompt-vars-bar">' + vars.map(function(v) {
-    return '<span class="prompt-var-tag" onclick="copyVarChip(\'' + v.replace(/'/g, "\\'") + '\')" title="点击复制"><span class="var-icon">&#128203;</span>{' + v + '}</span>';
-  }).join('') + '</div>' : '';
+  for (var i = 0; i < parsed.autoMatches.length; i++) {
+    var m = parsed.autoMatches[i];
+    highlights.push({ start: m.start, end: m.end, kind: 'auto', type: m.type, text: m.text });
+  }
+  highlights.sort(function(a, b) { return a.start - b.start; });
+
+  // 渲染：未命中区间走 escapeHtml 透传
+  var html = '';
+  var cursor = 0;
+  for (var i = 0; i < highlights.length; i++) {
+    var h = highlights[i];
+    if (cursor < h.start) html += escapeHtml(promptText.slice(cursor, h.start));
+    if (h.kind === 'marked') {
+      html += '<span class="prompt-var-chip" title="点击复制 {' + escapeHtmlAttr(h.varName) + '}" onclick="copyVarChip(\'' + escapeAttr(h.varName) + '\')">' + escapeHtml(h.text) + '</span>';
+    } else {
+      html += '<span class="prompt-auto-var t-' + h.type + '" title="可标记为' + LIB_TYPE_LABEL[h.type] + '变量">' + escapeHtml(h.text) + '</span>';
+    }
+    cursor = h.end;
+  }
+  if (cursor < promptText.length) html += escapeHtml(promptText.slice(cursor));
+
+  var tagsHtml = parsed.markedVars.length
+    ? '<div class="prompt-vars-bar">' + parsed.markedVars.map(function(v) {
+        return '<span class="prompt-var-tag" onclick="copyVarChip(\'' + escapeAttr(v) + '\')" title="点击复制"><span class="var-icon">&#128203;</span>{' + escapeHtml(v) + '}</span>';
+      }).join('') + '</div>'
+    : '';
   return '<div class="prompt-display">' + html + '</div>' + tagsHtml;
 }
 
@@ -2160,6 +2490,160 @@ function copyVarChip(varName) {
     document.body.removeChild(ta);
     showToast('已复制变量：' + text);
   });
+}
+
+// ============================================================
+//  用模板生成：基于当前素材的提示词填变量
+// ============================================================
+var templateFillState = null;  // { materialId, prompt, vars:[{word, varType}], values:{} }
+
+function openTemplateFill(materialId) {
+  var m = materials.find(function(x) { return x.id === materialId; });
+  if (!m || !m.prompt) {
+    showToast('该素材没有提示词，无法使用模板');
+    return;
+  }
+  var promptText = m.prompt;
+  var parsed = parsePromptForVars(promptText);
+
+  // 自动匹配按 word 去重（提示词里多次出现同一词只填一次）
+  var seen = {};
+  var autoDetected = [];
+  for (var i = 0; i < parsed.autoMatches.length; i++) {
+    var am = parsed.autoMatches[i];
+    if (!seen[am.text]) {
+      seen[am.text] = true;
+      autoDetected.push({ word: am.text, type: am.type });
+    }
+  }
+
+  var vars = [];
+  for (var i = 0; i < parsed.markedVars.length; i++) {
+    vars.push({ placeholder: '{' + parsed.markedVars[i] + '}', word: '', varType: parsed.markedVars[i], isMarked: true });
+  }
+  for (var i = 0; i < autoDetected.length; i++) {
+    vars.push({ placeholder: autoDetected[i].word, word: autoDetected[i].word, varType: LIB_TYPE_LABEL[autoDetected[i].type], detectedType: autoDetected[i].type, isMarked: false });
+  }
+
+  if (vars.length === 0) {
+    showToast('该提示词未识别到可变量');
+    return;
+  }
+
+  templateFillState = {
+    materialId: materialId,
+    prompt: promptText,
+    vars: vars,
+    values: {}
+  };
+
+  document.getElementById('templateFillSubtitle').textContent = '基于：' + m.title;
+  buildTemplateFillHTML();
+  updateTemplateFillPreview();
+  document.getElementById('templateFillOverlay').classList.add('active');
+}
+
+function buildTemplateFillHTML() {
+  var vars = templateFillState.vars;
+  var html = '';
+  for (var i = 0; i < vars.length; i++) {
+    var v = vars[i];
+    var placeholderText = v.isMarked ? v.placeholder : '默认：' + v.word;
+    html += '<div class="template-fill-row">' +
+      '<label><span class="fill-tag">' + escapeHtml(v.varType) + '</span>' +
+        '<span style="font-family:monospace;font-size:12px;color:var(--text-muted);">' +
+          escapeHtml(v.placeholder) +
+        '</span>' +
+      '</label>' +
+      '<input type="text" data-idx="' + i + '" placeholder="' + escapeAttr(placeholderText) + '" ' +
+        'oninput="onTemplateFillInput(' + i + ', this.value)">' +
+    '</div>';
+  }
+  document.getElementById('templateFillForm').innerHTML = html;
+}
+
+function onTemplateFillInput(idx, val) {
+  templateFillState.values[idx] = val;
+  updateTemplateFillPreview();
+}
+
+function updateTemplateFillPreview() {
+  if (!templateFillState) return;
+  var prompt = templateFillState.prompt;
+  var html = prompt.replace(/\{([^{}]+)\}/g, function(m, v) {
+    // 找对应的变量 idx
+    for (var i = 0; i < templateFillState.vars.length; i++) {
+      if (templateFillState.vars[i].isMarked && templateFillState.vars[i].varType === v) {
+        var val = templateFillState.values[i];
+        if (val) return '<span class="filled">' + escapeHtml(val) + '</span>';
+        return m;  // 留空保留占位符
+      }
+    }
+    return m;
+  });
+  // 处理自动识别的裸词（全文替换 /g）
+  for (var i = 0; i < templateFillState.vars.length; i++) {
+    var v = templateFillState.vars[i];
+    if (v.isMarked) continue;
+    var val = templateFillState.values[i];
+    if (!val) continue;
+    var escaped = v.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    html = html.replace(new RegExp(escaped, 'g'), '<span class="filled">' + escapeHtml(val) + '</span>');
+  }
+  if (html === prompt.replace(/\{([^{}]+)\}/g, function(m) { return m; })) {
+    // 没替换过，提示空
+    document.getElementById('templateFillPreview').innerHTML =
+      '<span class="empty-hint">填写变量后实时预览...</span>';
+  } else {
+    document.getElementById('templateFillPreview').innerHTML = html;
+  }
+}
+
+function buildTemplateFillText() {
+  if (!templateFillState) return '';
+  var prompt = templateFillState.prompt;
+  // 先替换已标记变量
+  var result = prompt.replace(/\{([^{}]+)\}/g, function(m, v) {
+    for (var i = 0; i < templateFillState.vars.length; i++) {
+      if (templateFillState.vars[i].isMarked && templateFillState.vars[i].varType === v) {
+        var val = templateFillState.values[i];
+        if (val) return val;
+        return m;
+      }
+    }
+    return m;
+  });
+  // 替换自动识别词（全文 /g）
+  for (var i = 0; i < templateFillState.vars.length; i++) {
+    var v = templateFillState.vars[i];
+    if (v.isMarked) continue;
+    var val = templateFillState.values[i];
+    if (!val) continue;
+    var escaped = v.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result.replace(new RegExp(escaped, 'g'), val);
+  }
+  return result;
+}
+
+function copyTemplateFillResult() {
+  if (!templateFillState) return;
+  var txt = buildTemplateFillText();
+  navigator.clipboard.writeText(txt).then(function() {
+    showToast('已复制生成结果');
+  }).catch(function() {
+    var ta = document.createElement('textarea');
+    ta.value = txt;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('已复制生成结果');
+  });
+}
+
+function closeTemplateFill() {
+  document.getElementById('templateFillOverlay').classList.remove('active');
+  templateFillState = null;
 }
 
 function handleUpload() {
