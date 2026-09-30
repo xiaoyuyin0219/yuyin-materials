@@ -809,7 +809,7 @@
 
   .prompt-var-tag .var-icon { font-size: 11px; opacity: 0.7; }
 
-  /* ===== Reference Images ===== */
+  /* ===== Reference Media ===== */
   .ref-images-grid {
     display: flex;
     flex-wrap: wrap;
@@ -826,10 +826,21 @@
     cursor: pointer;
   }
 
-  .ref-img-thumb img {
+  .ref-img-thumb img, .ref-img-thumb video {
     width: 100%; height: 100%;
     object-fit: cover;
     display: block;
+  }
+
+  .ref-video-badge {
+    position: absolute;
+    left: 3px; bottom: 3px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(92, 82, 69, 0.78);
+    color: #fff;
+    font-size: 10px;
+    pointer-events: none;
   }
 
   .ref-img-remove {
@@ -882,7 +893,7 @@
     border: 1px solid var(--accent);
   }
 
-  .ref-new-thumb img {
+  .ref-new-thumb img, .ref-new-thumb video {
     width: 100%; height: 100%;
     object-fit: cover;
     display: block;
@@ -901,24 +912,41 @@
   }
 
   .modal-ref-img {
-    width: 100px; height: 100px;
+    width: 112px; height: 112px;
     border-radius: 8px;
     overflow: hidden;
     border: 1px solid var(--border);
     cursor: pointer;
     transition: var(--transition);
+    position: relative;
+    background: #3D3530;
   }
 
-  .modal-ref-img:hover {
-    border-color: var(--accent);
-    transform: scale(1.05);
-  }
+  .modal-ref-img.ref-video { width: 180px; height: 112px; }
 
-  .modal-ref-img img {
+  .modal-ref-img:hover { border-color: var(--accent); }
+
+  .modal-ref-img img, .modal-ref-img video {
     width: 100%; height: 100%;
     object-fit: cover;
     display: block;
   }
+
+  .ref-download-btn {
+    position: absolute;
+    right: 5px; bottom: 5px;
+    padding: 4px 8px;
+    border: none;
+    border-radius: 6px;
+    background: rgba(92, 82, 69, 0.82);
+    color: #fff;
+    font-size: 11px;
+    cursor: pointer;
+    z-index: 2;
+  }
+
+  .ref-download-btn:hover { background: var(--accent); }
+  .ref-download-btn:disabled { opacity: 0.6; cursor: wait; }
 
   .section-label {
     font-size: 12px;
@@ -1072,8 +1100,8 @@
         <p>上传或编辑素材时可粘贴生成该素材的 AI 提示词。用 <code>{变量名}</code> 标记可替换的部分（如 <code>{对话内容}</code>、<code>{主体身份}</code>），详情页会自动高亮显示这些变量，点击即可复制，方便快速改编复用。</p>
       </div>
       <div class="guide-item">
-        <h4>参考图</h4>
-        <p>上传或编辑时可添加参考图，图片会保存到云端。详情页直接展示参考图缩略图，点击可放大查看，方便对照原素材进行二次创作。</p>
+        <h4>参考素材</h4>
+        <p>上传或编辑时可添加图片和视频作为参考素材，文件会保存到云端。详情页支持查看图片、播放视频和直接下载，方便对照原素材进行二次创作。</p>
       </div>
     </div>
   </div>
@@ -1166,14 +1194,14 @@
         </div>
         <div class="form-group">
           <label class="form-label">AI 创作提示词</label>
-          <textarea class="form-textarea" id="uploadPrompt" placeholder="粘贴生成这条素材的提示词，用 {变量名} 标记可替换的部分&#10;例如：一位 {主体身份} 在 {场景} 中 {主体动作}，说："{对话内容}"" rows="3"></textarea>
+          <textarea class="form-textarea" id="uploadPrompt" placeholder="粘贴生成这条素材的提示词，用 {变量名} 标记可替换的部分&#10;例如：一位 {主体身份} 在 {场景} 中 {主体动作}，说：&quot;{对话内容}&quot;" rows="3"></textarea>
         </div>
         <div class="form-group">
-          <label class="form-label">参考图</label>
+          <label class="form-label">参考素材（图片/视频）</label>
           <div class="ref-upload-area" id="uploadRefArea">
             <button type="button" class="ref-img-add" id="uploadRefAddBtn">+</button>
           </div>
-          <input type="file" id="uploadRefInput" accept="image/*" multiple style="display:none;">
+          <input type="file" id="uploadRefInput" accept="image/*,video/*" multiple style="display:none;">
         </div>
         <button class="upload-submit-btn" id="uploadSubmitBtn" disabled>提交上传</button>
         <div class="upload-progress" id="uploadProgress">
@@ -1244,12 +1272,12 @@
           <textarea class="form-textarea" id="editPrompt" placeholder="粘贴生成这条素材的提示词，用 {变量名} 标记可替换的部分" rows="3"></textarea>
         </div>
         <div class="form-group">
-          <label class="form-label">参考图</label>
+          <label class="form-label">参考素材（图片/视频）</label>
           <div class="ref-images-grid" id="editRefGrid"></div>
           <div class="ref-upload-area" id="editRefArea" style="margin-top:8px;">
             <button type="button" class="ref-img-add" id="editRefAddBtn">+</button>
           </div>
-          <input type="file" id="editRefInput" accept="image/*" multiple style="display:none;">
+          <input type="file" id="editRefInput" accept="image/*,video/*" multiple style="display:none;">
         </div>
         <button class="upload-submit-btn" id="editSubmitBtn">保存修改</button>
       </div>
@@ -1334,25 +1362,62 @@ var sb = {
     });
   },
 
-  // 上传文件到 Storage
-  uploadFile: function(path, file, onProgress) {
-    return fetchWithTimeout(
-      SUPABASE_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + path,
-      {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-          'Content-Type': file.type || 'application/octet-stream',
-          'x-upsert': 'false'
+  // 上传文件到 Storage（网络错误或 5xx 自动重试，避免临时 520 导致失败）
+  uploadFile: function(path, file) {
+    var requestUrl = SUPABASE_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + path;
+    var maxAttempts = 3;
+
+    function wait(ms) {
+      return new Promise(function(resolve) { setTimeout(resolve, ms); });
+    }
+
+    function attempt(attemptNo) {
+      return fetchWithTimeout(
+        requestUrl,
+        {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+            'Content-Type': file.type || 'application/octet-stream',
+            'x-upsert': 'false'
+          },
+          body: file
         },
-        body: file
-      },
-      60000
-    ).then(function(r) {
-      if (!r.ok) return r.text().then(function(t) { throw new Error(t || 'HTTP ' + r.status); });
-      return r.json();
-    });
+        180000
+      ).then(function(r) {
+        if (r.ok) return r.json();
+        return r.text().then(function() {
+          if (r.status === 409 && attemptNo > 1) {
+            var publicUrl = SUPABASE_URL + '/storage/v1/object/public/' + STORAGE_BUCKET + '/' + path;
+            return fetchWithTimeout(publicUrl, { method: 'HEAD' }, 15000).then(function(check) {
+              if (check.ok) return { alreadyUploaded: true };
+              var conflictError = new Error('文件名冲突，请重新选择后再试');
+              conflictError.uploadFinal = true;
+              throw conflictError;
+            });
+          }
+          if (r.status >= 500 && attemptNo < maxAttempts) {
+            return wait(800 * attemptNo).then(function() { return attempt(attemptNo + 1); });
+          }
+          var message = '云端上传失败（HTTP ' + r.status + '）';
+          if (r.status === 413) message = '文件过大，请压缩后重试';
+          if (r.status === 403) message = '没有上传权限，请检查 Storage 策略';
+          if (r.status === 409) message = '文件名冲突，请重新选择后再试';
+          var error = new Error(message);
+          error.uploadFinal = true;
+          throw error;
+        });
+      }).catch(function(err) {
+        if (!err.uploadFinal && attemptNo < maxAttempts) {
+          return wait(800 * attemptNo).then(function() { return attempt(attemptNo + 1); });
+        }
+        if (err.name === 'AbortError') throw new Error('上传超时，请检查网络后重试');
+        throw err;
+      });
+    }
+
+    return attempt(1);
   },
 
   // 获取文件公开 URL（纯拼接，不需要请求）
@@ -1393,9 +1458,9 @@ var currentProduct = 'all';
 var searchQuery = '';
 var sortBy = 'default';
 var uploadFile = null;
-var uploadRefFiles = [];   // File objects for upload
-var editRefUrls = [];      // existing ref image URLs (from DB)
-var editNewRefFiles = [];  // new File objects for edit
+var uploadRefFiles = [];   // reference image/video File objects for upload
+var editRefUrls = [];      // existing reference media URLs (from DB)
+var editNewRefFiles = [];  // new reference media File objects for edit
 
 // ============================================================
 //  初始化
@@ -1530,7 +1595,7 @@ function renderGrid() {
       + '<div class="card-title" onclick="openModal(\'' + m.id + '\')">' + m.title + '</div>'
       + '<div class="card-meta"><span class="card-product">' + prodName + '</span><span>' + catName + '</span></div>'
       + (m.tags && m.tags.length ? '<div class="card-tags">' + m.tags.map(function(t) { return '<span class="card-tag">' + t + '</span>'; }).join('') + '</div>' : '')
-      + (m.prompt ? '<div class="card-tags" style="margin-top:4px"><span class="card-tag" style="background:rgba(184,160,112,0.15);color:var(--orange)">&#128221; 含提示词</span>' + (m.ref_images && m.ref_images.length ? '<span class="card-tag" style="background:rgba(143,168,130,0.12);color:var(--green)">&#128247; ' + m.ref_images.length + '张参考图</span>' : '') + '</div>' : (m.ref_images && m.ref_images.length ? '<div class="card-tags" style="margin-top:4px"><span class="card-tag" style="background:rgba(143,168,130,0.12);color:var(--green)">&#128247; ' + m.ref_images.length + '张参考图</span></div>' : ''))
+      + (m.prompt ? '<div class="card-tags" style="margin-top:4px"><span class="card-tag" style="background:rgba(184,160,112,0.15);color:var(--orange)">&#128221; 含提示词</span>' + (m.ref_images && m.ref_images.length ? '<span class="card-tag" style="background:rgba(143,168,130,0.12);color:var(--green)">&#128206; ' + m.ref_images.length + '个参考素材</span>' : '') + '</div>' : (m.ref_images && m.ref_images.length ? '<div class="card-tags" style="margin-top:4px"><span class="card-tag" style="background:rgba(143,168,130,0.12);color:var(--green)">&#128206; ' + m.ref_images.length + '个参考素材</span></div>' : ''))
       + '<div class="card-actions">'
       + '<button type="button" class="card-action-btn" onclick="downloadMaterial(\'' + m.id + '\', this)" ' + (!fileUrl ? 'disabled style="opacity:0.4;pointer-events:none"' : '') + '>&#11015; 下载</button>'
       + '<button class="card-action-btn" onclick="openEditModal(\'' + m.id + '\')">&#9998; 编辑</button>'
@@ -1611,28 +1676,22 @@ function bindEvents() {
   document.getElementById('uploadFileRemove').addEventListener('click', clearUploadFile);
   document.getElementById('uploadSubmitBtn').addEventListener('click', handleUpload);
 
-  // Upload modal ref images
+  // Upload modal reference images/videos
   document.getElementById('uploadRefAddBtn').addEventListener('click', function() {
     document.getElementById('uploadRefInput').click();
   });
   document.getElementById('uploadRefInput').addEventListener('change', function(e) {
-    var files = Array.from(e.target.files);
-    files.forEach(function(f) {
-      if (f.type.startsWith('image/')) uploadRefFiles.push(f);
-    });
+    addReferenceFiles(Array.from(e.target.files), uploadRefFiles);
     renderUploadRefThumbs();
     e.target.value = '';
   });
 
-  // Edit modal ref images
+  // Edit modal reference images/videos
   document.getElementById('editRefAddBtn').addEventListener('click', function() {
     document.getElementById('editRefInput').click();
   });
   document.getElementById('editRefInput').addEventListener('change', function(e) {
-    var files = Array.from(e.target.files);
-    files.forEach(function(f) {
-      if (f.type.startsWith('image/')) editNewRefFiles.push(f);
-    });
+    addReferenceFiles(Array.from(e.target.files), editNewRefFiles);
     renderEditNewRefThumbs();
     e.target.value = '';
   });
@@ -1720,6 +1779,55 @@ function downloadMaterial(id, btnEl) {
 }
 
 // ============================================================
+//  直接下载参考素材（兼容旧图片 URL 和新视频 URL）
+// ============================================================
+function downloadReference(materialId, index, btnEl) {
+  var m = materials.find(function(item) { return item.id === materialId; });
+  var refUrl = m && Array.isArray(m.ref_images) ? m.ref_images[index] : '';
+  if (!refUrl) {
+    showToast('该参考素材不存在', true);
+    return;
+  }
+
+  var originalHtml = btnEl ? btnEl.innerHTML : '';
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.innerHTML = '下载中...';
+  }
+  showToast('正在准备参考素材下载...');
+
+  fetch(refUrl).then(function(response) {
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    return response.blob();
+  }).then(function(blob) {
+    var urlPath = refUrl.split('?')[0];
+    var extMatch = urlPath.match(/\.([a-zA-Z0-9]{2,5})$/);
+    var isVideo = isReferenceVideo(refUrl) || blob.type.indexOf('video/') === 0;
+    var ext = extMatch ? '.' + extMatch[1].toLowerCase() : (isVideo ? '.mp4' : '.jpg');
+    var safeTitle = (m.title || '素材').replace(/[\\/:*?"<>|]/g, '_').trim() || '素材';
+    var fileName = safeTitle + '_参考' + (isVideo ? '视频' : '图片') + '_' + (index + 1) + ext;
+    var blobUrl = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = fileName;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 1000);
+    showToast('参考素材下载已开始');
+  }).catch(function(err) {
+    console.error('参考素材下载失败:', err);
+    showToast('参考素材下载失败，请检查网络后重试', true);
+  }).then(function() {
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.innerHTML = originalHtml;
+    }
+  });
+}
+
+// ============================================================
 //  Toast 提示
 // ============================================================
 function showToast(msg, isError) {
@@ -1776,17 +1884,25 @@ function openModal(id) {
     promptHtml = '<div class="section-label">AI 创作提示词</div>' + renderPromptWithVars(m.prompt);
   }
 
-  // Reference images section
+  // Reference media section (legacy image URLs remain compatible)
   var refHtml = '';
   if (m.ref_images && Array.isArray(m.ref_images) && m.ref_images.length) {
-    refHtml = '<div class="section-label">参考图</div><div class="modal-ref-images">' +
-      m.ref_images.map(function(url) {
-        return '<div class="modal-ref-img" onclick="window.open(\'' + url + '\', \'_blank\')"><img src="' + url + '"></div>';
+    refHtml = '<div class="section-label">参考素材</div><div class="modal-ref-images">' +
+      m.ref_images.map(function(url, index) {
+        var isVideo = isReferenceVideo(url);
+        var mediaHtml = isVideo
+          ? '<video src="' + url + '" controls preload="metadata" playsinline></video>'
+          : '<img src="' + url + '" alt="参考图片" onclick="window.open(this.src, \'_blank\')">';
+        return '<div class="modal-ref-img' + (isVideo ? ' ref-video' : '') + '">' +
+          mediaHtml +
+          '<button type="button" class="ref-download-btn" onclick="event.stopPropagation();downloadReference(\'' + m.id + '\', ' + index + ', this)">&#11015; 下载</button>' +
+          '</div>';
       }).join('') + '</div>';
   }
 
-  // Insert prompt + ref after info
+  // Insert prompt + reference media after info
   var extraSection = document.createElement('div');
+  extraSection.className = 'modal-extra-section';
   extraSection.innerHTML = promptHtml + refHtml;
   infoEl.parentNode.insertBefore(extraSection, infoEl.nextSibling);
 
@@ -1800,9 +1916,7 @@ function openModal(id) {
 function closeModal() {
   document.getElementById('modalOverlay').classList.remove('active');
   document.getElementById('modalMedia').innerHTML = '';
-  // Remove dynamically inserted prompt/ref sections
-  var modalBody = document.querySelector('#modalOverlay .modal-body');
-  var extras = modalBody.querySelectorAll('.section-label, .prompt-display, .prompt-vars-bar, .modal-ref-images');
+  var extras = document.querySelectorAll('#modalOverlay .modal-extra-section');
   extras.forEach(function(el) { el.remove(); });
 }
 
@@ -1860,10 +1974,7 @@ function resetUploadForm() {
   document.getElementById('uploadNote').value = '';
   document.getElementById('uploadPrompt').value = '';
   uploadRefFiles = [];
-  // Clear ref thumbs
-  var area = document.getElementById('uploadRefArea');
-  var old = area.querySelectorAll('.ref-new-thumb');
-  old.forEach(function(el) { el.remove(); });
+  clearReferencePreviewThumbs(document.getElementById('uploadRefArea'));
 }
 
 function formatFileSize(bytes) {
@@ -1873,19 +1984,62 @@ function formatFileSize(bytes) {
 }
 
 // ============================================================
-//  参考图缩略图渲染
+//  参考素材（图片/视频）选择与缩略图渲染
 // ============================================================
+function isReferenceVideo(source) {
+  if (!source) return false;
+  if (typeof source === 'object' && source.type) return source.type.indexOf('video/') === 0;
+  return /\.(mp4|mov|m4v|webm|ogg)(?:$|\?)/i.test(String(source));
+}
+
+function isSupportedReferenceFile(file) {
+  if (!file) return false;
+  if (file.type.indexOf('image/') === 0 || file.type.indexOf('video/') === 0) return true;
+  return /\.(jpg|jpeg|png|gif|webp|bmp|mp4|mov|m4v|webm|ogg)$/i.test(file.name || '');
+}
+
+function addReferenceFiles(files, targetList) {
+  var maxSize = 50 * 1024 * 1024;
+  var unsupported = 0;
+  var oversized = 0;
+  files.forEach(function(file) {
+    if (!isSupportedReferenceFile(file)) {
+      unsupported++;
+    } else if (file.size > maxSize) {
+      oversized++;
+    } else {
+      targetList.push(file);
+    }
+  });
+  if (oversized) showToast('有 ' + oversized + ' 个参考素材超过 50MB，请压缩后上传', true);
+  else if (unsupported) showToast('仅支持图片或视频格式', true);
+}
+
+function referencePreviewHtml(source, sourceUrl) {
+  if (isReferenceVideo(source)) {
+    return '<video src="' + sourceUrl + '" muted preload="metadata" playsinline></video><span class="ref-video-badge">视频</span>';
+  }
+  return '<img src="' + sourceUrl + '" alt="参考图片">';
+}
+
+function clearReferencePreviewThumbs(container) {
+  container.querySelectorAll('.ref-new-thumb').forEach(function(el) {
+    var media = el.querySelector('img, video');
+    var src = media ? media.getAttribute('src') : '';
+    if (src && src.indexOf('blob:') === 0) URL.revokeObjectURL(src);
+    el.remove();
+  });
+}
+
 function renderUploadRefThumbs() {
   var area = document.getElementById('uploadRefArea');
   var addBtn = document.getElementById('uploadRefAddBtn');
-  // Remove old thumbs
-  var old = area.querySelectorAll('.ref-new-thumb');
-  old.forEach(function(el) { el.remove(); });
-  // Insert new thumbs before add button
-  uploadRefFiles.forEach(function(f, idx) {
+  clearReferencePreviewThumbs(area);
+  uploadRefFiles.forEach(function(file, idx) {
     var div = document.createElement('div');
+    var objectUrl = URL.createObjectURL(file);
     div.className = 'ref-new-thumb';
-    div.innerHTML = '<img src="' + URL.createObjectURL(f) + '"><button class="ref-img-remove" data-idx="' + idx + '">&times;</button>';
+    div.innerHTML = referencePreviewHtml(file, objectUrl) + '<button class="ref-img-remove" data-idx="' + idx + '">&times;</button>';
     div.querySelector('.ref-img-remove').addEventListener('click', function() {
       uploadRefFiles.splice(idx, 1);
       renderUploadRefThumbs();
@@ -1897,7 +2051,7 @@ function renderUploadRefThumbs() {
 function renderEditRefGrid() {
   var grid = document.getElementById('editRefGrid');
   grid.innerHTML = editRefUrls.map(function(url, idx) {
-    return '<div class="ref-img-thumb"><img src="' + url + '"><button class="ref-img-remove" data-idx="' + idx + '">&times;</button></div>';
+    return '<div class="ref-img-thumb">' + referencePreviewHtml(url, url) + '<button class="ref-img-remove" data-idx="' + idx + '">&times;</button></div>';
   }).join('');
   grid.querySelectorAll('.ref-img-remove').forEach(function(btn) {
     btn.addEventListener('click', function() {
@@ -1910,12 +2064,12 @@ function renderEditRefGrid() {
 function renderEditNewRefThumbs() {
   var area = document.getElementById('editRefArea');
   var addBtn = document.getElementById('editRefAddBtn');
-  var old = area.querySelectorAll('.ref-new-thumb');
-  old.forEach(function(el) { el.remove(); });
-  editNewRefFiles.forEach(function(f, idx) {
+  clearReferencePreviewThumbs(area);
+  editNewRefFiles.forEach(function(file, idx) {
     var div = document.createElement('div');
+    var objectUrl = URL.createObjectURL(file);
     div.className = 'ref-new-thumb';
-    div.innerHTML = '<img src="' + URL.createObjectURL(f) + '"><button class="ref-img-remove" data-idx="' + idx + '">&times;</button>';
+    div.innerHTML = referencePreviewHtml(file, objectUrl) + '<button class="ref-img-remove" data-idx="' + idx + '">&times;</button>';
     div.querySelector('.ref-img-remove').addEventListener('click', function() {
       editNewRefFiles.splice(idx, 1);
       renderEditNewRefThumbs();
@@ -1995,12 +2149,12 @@ function handleUpload() {
   // 1. Upload file to Storage
   sb.uploadFile(storagePath, uploadFile).then(function() {
     barFill.style.width = '50%';
-    progressText.textContent = '文件上传完成，正在上传参考图...';
+    progressText.textContent = '文件上传完成，正在上传参考素材...';
 
     // 2. Get public URL
     var fileUrl = sb.getPublicUrl(storagePath);
 
-    // 3. Upload reference images
+    // 3. Upload reference media (images/videos share the legacy ref_images field)
     var refUploads = uploadRefFiles.map(function(f, idx) {
       var refExt = f.name.split('.').pop().toLowerCase().replace(/[^a-zA-Z0-9]/g, '') || 'jpg';
       var refPath = 'ref_images/' + timestamp + '_' + idx + '.' + refExt;
@@ -2073,20 +2227,19 @@ function openEditModal(id) {
   document.getElementById('editNote').value = m.note || '';
   document.getElementById('editPrompt').value = m.prompt || '';
 
-  // Populate existing ref images
+  // Populate existing reference media from the legacy ref_images field
   editRefUrls = (m.ref_images && Array.isArray(m.ref_images)) ? m.ref_images.slice() : [];
   editNewRefFiles = [];
   renderEditRefGrid();
-  // Clear new ref thumbs
-  var area = document.getElementById('editRefArea');
-  var old = area.querySelectorAll('.ref-new-thumb');
-  old.forEach(function(el) { el.remove(); });
+  clearReferencePreviewThumbs(document.getElementById('editRefArea'));
 
   document.getElementById('editModalOverlay').classList.add('active');
 }
 
 function closeEditModal() {
   document.getElementById('editModalOverlay').classList.remove('active');
+  clearReferencePreviewThumbs(document.getElementById('editRefArea'));
+  editNewRefFiles = [];
 }
 
 function handleEdit() {
@@ -2109,7 +2262,7 @@ function handleEdit() {
   var tags = tagsStr ? tagsStr.split(/[,，、]/).map(function(t) { return t.trim(); }).filter(function(t) { return t; }) : [];
   var prompt = document.getElementById('editPrompt').value.trim();
 
-  // Upload new ref images, then combine with existing
+  // Upload new reference media, then combine with existing URLs
   var timestamp = Date.now();
   var newUploads = editNewRefFiles.map(function(f, idx) {
     var refExt = f.name.split('.').pop().toLowerCase().replace(/[^a-zA-Z0-9]/g, '') || 'jpg';
@@ -2120,7 +2273,7 @@ function handleEdit() {
   });
 
   Promise.all(newUploads).then(function(newUrls) {
-    var allRefImages = editRefUrls.concat(newUrls);
+    var allRefMedia = editRefUrls.concat(newUrls);
     return sb.update(id, {
       title: title,
       category: category,
@@ -2129,7 +2282,7 @@ function handleEdit() {
       uploader: document.getElementById('editUploader').value.trim(),
       note: document.getElementById('editNote').value.trim(),
       prompt: prompt,
-      ref_images: allRefImages
+      ref_images: allRefMedia
     });
   }).then(function() {
     showToast('保存成功！');
