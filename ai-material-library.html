@@ -393,6 +393,16 @@
     border-color: var(--green);
   }
 
+  .card-action-btn.jy-btn {
+    background: rgba(184, 160, 112, 0.1);
+    border-color: rgba(184, 160, 112, 0.4);
+    color: var(--orange);
+  }
+  .card-action-btn.jy-btn:hover {
+    background: rgba(184, 160, 112, 0.2);
+    border-color: var(--orange);
+  }
+
   .card-tags {
     display: flex;
     gap: 4px;
@@ -1785,6 +1795,7 @@ function renderGrid() {
       + '<button type="button" class="card-action-btn" onclick="downloadMaterial(\'' + m.id + '\', this)" ' + (!fileUrl ? 'disabled style="opacity:0.4;pointer-events:none"' : '') + '>&#11015; 下载</button>'
       + '<button class="card-action-btn" onclick="openEditModal(\'' + m.id + '\')">&#9998; 编辑</button>'
       + '<button class="card-action-btn" onclick="copyMaterialLink(\'' + m.id + '\', this)">&#128279; 复制链接</button>'
+      + (fileUrl ? '<button class="card-action-btn jy-btn" onclick="transferToJianYing(\'' + m.id + '\', this)">&#127916; 复制到剪映</button>' : '')
       + '</div></div></div>';
   }).join('');
 }
@@ -1964,6 +1975,70 @@ function downloadMaterial(id, btnEl) {
     console.error('下载失败:', err);
     showToast('下载失败，请检查网络后重试', true);
   }).then(function() {
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.innerHTML = originalHtml;
+    }
+  });
+}
+
+// ============================================================
+//  复制到剪映（通过本地桥接服务）
+// ============================================================
+var JY_BRIDGE = 'http://localhost:8787';
+
+function transferToJianYing(id, btnEl) {
+  var m = materials.find(function(item) { return item.id === id; });
+  if (!m || !m.file_url) {
+    showToast('该素材暂无视频文件', true);
+    return;
+  }
+
+  var originalHtml = btnEl ? btnEl.innerHTML : '';
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.innerHTML = '&#8987; 处理中...';
+  }
+
+  // 先检查桥接服务是否在线
+  fetch(JY_BRIDGE + '/ping').then(function(r) { return r.json(); }).then(function() {
+    // 服务在线，发送下载请求
+    return fetch(JY_BRIDGE + '/transfer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ urls: [m.file_url] })
+    });
+  }).then(function(r) {
+    if (!r) throw new Error('bridge offline');
+    return r.json();
+  }).then(function(data) {
+    if (data.errors > 0) {
+      var err = data.results.find(function(r) { return r.status === 'error'; });
+      throw new Error(err ? err.error : '下载失败');
+    }
+    var result = data.results[0];
+    if (data.cached > 0) {
+      showToast('已缓存，路径已复制到剪贴板');
+    } else {
+      showToast('视频已就绪，路径已复制到剪贴板');
+    }
+    if (btnEl) {
+      btnEl.innerHTML = '&#10004; 已复制';
+      btnEl.classList.add('copied');
+    }
+    setTimeout(function() {
+      if (btnEl) {
+        btnEl.innerHTML = originalHtml;
+        btnEl.classList.remove('copied');
+      }
+    }, 2000);
+  }).catch(function(err) {
+    console.error('剪映联动失败:', err);
+    if (err.message === 'Failed to fetch' || err.message === 'bridge offline') {
+      showToast('请先启动剪映桥接服务（jianying-bridge.py）', true);
+    } else {
+      showToast('剪映联动失败: ' + err.message, true);
+    }
     if (btnEl) {
       btnEl.disabled = false;
       btnEl.innerHTML = originalHtml;
