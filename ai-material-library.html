@@ -153,50 +153,6 @@
     white-space: nowrap;
   }
 
-  .admin-btn {
-    padding: 9px 14px;
-    background: rgba(196, 168, 130, 0.12);
-    color: var(--accent);
-    border: 1px solid rgba(196, 168, 130, 0.3);
-    border-radius: 10px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: var(--transition);
-    white-space: nowrap;
-  }
-  .admin-btn:hover { background: rgba(196, 168, 130, 0.22); border-color: var(--accent); }
-  .admin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  .batch-overlay {
-    position: fixed; inset: 0; z-index: 9999;
-    background: rgba(0,0,0,0.5);
-    display: flex; align-items: center; justify-content: center;
-  }
-  .batch-overlay .batch-box {
-    background: var(--bg-primary);
-    border-radius: 16px;
-    padding: 32px 40px;
-    min-width: 360px;
-    text-align: center;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-  }
-  .batch-overlay .batch-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
-  .batch-overlay .batch-progress-bg {
-    width: 100%; height: 8px; background: var(--bg-secondary);
-    border-radius: 4px; overflow: hidden; margin-bottom: 12px;
-  }
-  .batch-overlay .batch-progress-fill {
-    height: 100%; background: var(--accent); border-radius: 4px;
-    transition: width 0.3s;
-  }
-  .batch-overlay .batch-status { font-size: 14px; color: var(--text-secondary); }
-  .batch-overlay .batch-close {
-    margin-top: 20px; padding: 8px 24px;
-    background: var(--accent); color: #fff; border: none;
-    border-radius: 8px; font-size: 14px; cursor: pointer;
-    display: none;
-  }
-
   .upload-btn:hover { background: var(--accent-light); }
 
   /* ===== Filter Rows ===== */
@@ -1211,7 +1167,6 @@
       </select>
       <div class="stats" id="statsText">共 <strong>0</strong> 条素材</div>
       <button class="upload-btn" id="uploadBtn">&#128228; <span class="btn-text">上传素材</span></button>
-      <button class="admin-btn" id="batchThumbBtn" title="为没有封面的视频自动生成首帧封面">&#127912; 批量封面</button>
     </div>
   </div>
 </header>
@@ -1884,7 +1839,6 @@ function bindEvents() {
   });
 
   document.getElementById('uploadBtn').addEventListener('click', openUploadModal);
-  document.getElementById('batchThumbBtn').addEventListener('click', batchGenerateThumbnails);
   document.getElementById('uploadModalClose').addEventListener('click', closeUploadModal);
   document.getElementById('uploadModalOverlay').addEventListener('click', function(e) {
     if (e.target === e.currentTarget) closeUploadModal();
@@ -2826,89 +2780,6 @@ function generateVideoThumbnail(file) {
       reject(new Error('video load error'));
     };
   });
-}
-
-// 批量为无封面视频生成首帧封面
-function batchGenerateThumbnails() {
-  var noThumbVideos = materials.filter(function(m) {
-    return m.type === 'video' && (!m.thumbnail || m.thumbnail === '');
-  });
-
-  if (noThumbVideos.length === 0) {
-    showToast('所有视频已有封面，无需生成');
-    return;
-  }
-
-  // 创建进度弹窗
-  var overlay = document.createElement('div');
-  overlay.className = 'batch-overlay';
-  overlay.innerHTML = '<div class="batch-box">'
-    + '<div class="batch-title">批量生成视频封面</div>'
-    + '<div class="batch-progress-bg"><div class="batch-progress-fill" id="batchFill" style="width:0%"></div></div>'
-    + '<div class="batch-status" id="batchStatus">准备中...</div>'
-    + '<button class="batch-close" id="batchClose">完成</button>'
-    + '</div>';
-  document.body.appendChild(overlay);
-
-  var fill = document.getElementById('batchFill');
-  var status = document.getElementById('batchStatus');
-  var closeBtn = document.getElementById('batchClose');
-  var total = noThumbVideos.length;
-  var done = 0;
-  var failed = 0;
-
-  closeBtn.onclick = function() {
-    document.body.removeChild(overlay);
-    renderGrid();
-  };
-
-  function processNext(index) {
-    if (index >= total) {
-      fill.style.width = '100%';
-      status.textContent = '完成！成功 ' + (total - failed) + ' 个，失败 ' + failed + ' 个';
-      closeBtn.style.display = 'inline-block';
-      return;
-    }
-
-    var m = noThumbVideos[index];
-    status.textContent = '[' + (index + 1) + '/' + total + '] 正在处理: ' + m.title;
-    fill.style.width = Math.round((index / total) * 100) + '%';
-
-    // 下载视频文件
-    fetchWithTimeout(m.file_url, {}, 30000)
-      .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); })
-      .then(function(blob) {
-        // 生成缩略图
-        return generateVideoThumbnailFromBlob(blob);
-      })
-      .then(function(thumbBlob) {
-        // 上传缩略图
-        var thumbPath = 'thumbnails/' + m.id + '.jpg';
-        return sb.uploadFile(thumbPath, thumbBlob).then(function() {
-          return sb.getPublicUrl(thumbPath);
-        });
-      })
-      .then(function(thumbUrl) {
-        // 更新数据库记录
-        return sb.update(m.id, { thumbnail: thumbUrl });
-      })
-      .then(function() {
-        // 更新本地数据
-        m.thumbnail = noThumbVideos[index].thumbnail || '';
-        var localM = materials.find(function(item) { return item.id === m.id; });
-        if (localM) localM.thumbnail = noThumbVideos[index].thumbnail;
-        done++;
-      })
-      .catch(function(err) {
-        console.warn('封面生成失败 [' + m.title + ']:', err);
-        failed++;
-      })
-      .then(function() {
-        processNext(index + 1);
-      });
-  }
-
-  processNext(0);
 }
 
 // 从 Blob 生成视频首帧缩略图
