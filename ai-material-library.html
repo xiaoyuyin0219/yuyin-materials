@@ -828,6 +828,7 @@
   .prompt-auto-var.t-camera  { background: rgba(168, 200, 224, 0.22); border-color: rgba(168, 200, 224, 0.8); color: #4070A0; }
   .prompt-auto-var.t-skin    { background: rgba(240, 180, 210, 0.22); border-color: rgba(240, 180, 210, 0.8); color: #B05080; }
   .prompt-auto-var.t-aspect  { background: rgba(210, 190, 165, 0.22); border-color: rgba(210, 190, 165, 0.8); color: #806040; }
+  .prompt-auto-var.t-painpoint { background: rgba(240, 180, 160, 0.22); border-color: rgba(240, 180, 160, 0.8); color: #C06040; }
 
   /* Prompt 区域标题 + 按钮组 */
   .prompt-section-header {
@@ -2304,6 +2305,16 @@ var LIB_WORDS = {
     '光滑而平整', '光滑平整', '水润光泽', '毛孔细腻',
     '自然水光感', '光泽柔和', '平整饱满', '干净通透'
   ],
+  // 痛点：常见护肤问题（长词在前）
+  painpoint: [
+    '眼周细纹', '眼角细纹', '鱼尾纹', '法令纹', '抬头纹', '颈纹',
+    '黑眼圈', '眼袋', '眼部浮肿', '眼周暗沉',
+    '干燥缺水', '紧绷起皮', '外油内干', 'T区出油',
+    '肤色暗沉', '发黄不均', '色斑', '痘印',
+    '毛孔粗大', '黑头', '白头', '闭口', '痘痘', '粉刺',
+    '敏感泛红', '红血丝', '刺痛', '过敏',
+    '松弛下垂', '缺乏弹性', '粗糙不平', '角质堆积'
+  ],
   // 动作：实际高频动作短语（长词在前）
   action: [
     '来回涂抹', '均匀覆盖', '完整覆盖', '完全覆盖', '逐渐被皮肤吸收',
@@ -2323,13 +2334,14 @@ var LIB_WORDS = {
 };
 
 var LIB_TYPE_LABEL = {
-  product: '产品',
-  light:   '光线',
-  camera:  '镜头',
-  skin:    '皮肤状态',
-  action:  '动作',
-  tone:    '风格',
-  aspect:  '画幅'
+  product:   '产品',
+  light:     '光线',
+  camera:    '镜头',
+  skin:      '皮肤状态',
+  painpoint: '痛点',
+  action:    '动作',
+  tone:      '风格',
+  aspect:    '画幅'
 };
 
 function escapeHtml(s) {
