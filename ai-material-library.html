@@ -1772,7 +1772,7 @@ function renderGrid() {
     if (m.thumbnail) {
       thumbHtml = '<img src="' + m.thumbnail + '" alt="' + m.title.replace(/"/g, '&quot;') + '" loading="lazy">';
     } else if (isVideo && fileUrl) {
-      thumbHtml = '<video class="card-video-thumb" src="' + fileUrl + '" preload="metadata" muted playsinline onloadeddata="this.currentTime=0" onerror="this.style.display=\'none\';this.parentElement.querySelector(\'.thumb-fallback\').style.display=\'flex\'"></video><div class="thumb-fallback" style="display:none"><div class="placeholder">&#127909;</div></div>';
+      thumbHtml = '<video class="card-video-thumb" src="' + fileUrl + '" preload="metadata" muted playsinline webkit-playsinline onloadeddata="this.currentTime=0.1" onerror="this.outerHTML=\'<div class=\\\'thumb-fallback\\\'><div class=\\\'placeholder\\\'>&#127909;</div></div>\'"></video><div class="thumb-fallback" style="display:none"><div class="placeholder">&#127909;</div></div>';
     } else if (!isVideo && fileUrl) {
       thumbHtml = '<img src="' + fileUrl + '" alt="' + m.title.replace(/"/g, '&quot;') + '" loading="lazy" onerror="this.style.display=\'none\';this.parentElement.querySelector(\'.thumb-fallback\').style.display=\'flex\'"><div class="thumb-fallback" style="display:none"><div class="placeholder">&#128247;</div></div>';
     } else {
@@ -2740,6 +2740,48 @@ function closeTemplateFill() {
   templateFillState = null;
 }
 
+// 从视频文件生成首帧缩略图（Blob URL）
+function generateVideoThumbnail(file) {
+  return new Promise(function(resolve, reject) {
+    var video = document.createElement('video');
+    video.preload = 'metadata';
+    video.muted = true;
+    video.playsInline = true;
+    video.style.cssText = 'position:fixed;left:-9999px;top:-9999px;';
+    document.body.appendChild(video);
+
+    var url = URL.createObjectURL(file);
+    video.src = url;
+
+    video.onloadeddata = function() {
+      video.currentTime = Math.min(0.5, video.duration || 0.5);
+    };
+    video.onseeked = function() {
+      try {
+        var canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 360;
+        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(function(blob) {
+          document.body.removeChild(video);
+          URL.revokeObjectURL(url);
+          if (blob) resolve(blob);
+          else reject(new Error('canvas toBlob failed'));
+        }, 'image/jpeg', 0.85);
+      } catch(e) {
+        document.body.removeChild(video);
+        URL.revokeObjectURL(url);
+        reject(e);
+      }
+    };
+    video.onerror = function() {
+      document.body.removeChild(video);
+      URL.revokeObjectURL(url);
+      reject(new Error('video load error'));
+    };
+  });
+}
+
 function handleUpload() {
   if (!uploadFile) return;
 
@@ -2772,13 +2814,30 @@ function handleUpload() {
 
   // 1. Upload file to Storage
   sb.uploadFile(storagePath, uploadFile).then(function() {
-    barFill.style.width = '50%';
-    progressText.textContent = '文件上传完成，正在上传参考素材...';
+    barFill.style.width = '40%';
+    progressText.textContent = '文件上传完成';
 
     // 2. Get public URL
     var fileUrl = sb.getPublicUrl(storagePath);
 
-    // 3. Upload reference media (images/videos share the legacy ref_images field)
+    // 3. Generate video thumbnail (for Safari compatibility)
+    var thumbPromise;
+    if (isVideo) {
+      progressText.textContent = '正在生成视频封面...';
+      thumbPromise = generateVideoThumbnail(uploadFile).then(function(thumbBlob) {
+        var thumbPath = 'thumbnails/' + timestamp + '.jpg';
+        return sb.uploadFile(thumbPath, thumbBlob).then(function() {
+          return sb.getPublicUrl(thumbPath);
+        });
+      }).catch(function(err) {
+        console.warn('缩略图生成失败:', err);
+        return '';
+      });
+    } else {
+      thumbPromise = Promise.resolve(fileUrl);
+    }
+
+    // 4. Upload reference media
     var refUploads = uploadRefFiles.map(function(f, idx) {
       var refExt = f.name.split('.').pop().toLowerCase().replace(/[^a-zA-Z0-9]/g, '') || 'jpg';
       var refPath = 'ref_images/' + timestamp + '_' + idx + '.' + refExt;
@@ -2787,18 +2846,20 @@ function handleUpload() {
       });
     });
 
-    return Promise.all(refUploads).then(function(refUrls) {
+    return Promise.all([thumbPromise].concat(refUploads)).then(function(results) {
+      var thumbnailUrl = results[0];
+      var refUrls = results.slice(1);
       barFill.style.width = '75%';
       progressText.textContent = '正在保存素材信息...';
 
-      // 4. Parse tags
+      // 5. Parse tags
       var tagsStr = document.getElementById('uploadTags').value.trim();
       var tags = tagsStr ? tagsStr.split(/[,，、]/).map(function(t) { return t.trim(); }).filter(function(t) { return t; }) : [];
 
-      // 5. Get prompt
+      // 6. Get prompt
       var prompt = document.getElementById('uploadPrompt').value.trim();
 
-      // 6. Insert record
+      // 7. Insert record
       var id = (isVideo ? 'vid' : 'img') + '_' + timestamp;
       var today = new Date().toISOString().split('T')[0];
 
@@ -2808,7 +2869,7 @@ function handleUpload() {
         type: isVideo ? 'video' : 'image',
         category: category,
         product: product,
-        thumbnail: isVideo ? '' : fileUrl,
+        thumbnail: thumbnailUrl,
         file_url: fileUrl,
         tags: tags,
         uploader: document.getElementById('uploadUploader').value.trim(),
