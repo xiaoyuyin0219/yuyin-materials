@@ -829,6 +829,7 @@
   .prompt-auto-var.t-skin    { background: rgba(240, 180, 210, 0.22); border-color: rgba(240, 180, 210, 0.8); color: #B05080; }
   .prompt-auto-var.t-aspect  { background: rgba(210, 190, 165, 0.22); border-color: rgba(210, 190, 165, 0.8); color: #806040; }
   .prompt-auto-var.t-painpoint { background: rgba(240, 180, 160, 0.22); border-color: rgba(240, 180, 160, 0.8); color: #C06040; }
+  .prompt-auto-var.t-bodypart  { background: rgba(160, 210, 200, 0.22); border-color: rgba(160, 210, 200, 0.8); color: #2A8070; }
 
   /* Prompt 区域标题 + 按钮组 */
   .prompt-section-header {
@@ -2330,6 +2331,12 @@ var LIB_WORDS = {
   // 画幅：单独分类
   aspect: [
     '竖屏 9:16', '9:16', '竖屏'
+  ],
+  // 部位：面部/身体区域
+  bodypart: [
+    '眼周', '眼下', '眼角', '眼部', '额头', '太阳穴', '鼻翼', '鼻头',
+    '脸颊', '面颊', '下巴', '唇周', '眉间', '脖子', '颈部', 'T区',
+    '手部', '手背', '指缝', '锁骨', '肩颈'
   ]
 };
 
@@ -2341,7 +2348,8 @@ var LIB_TYPE_LABEL = {
   painpoint: '痛点',
   action:    '动作',
   tone:      '风格',
-  aspect:    '画幅'
+  aspect:    '画幅',
+  bodypart:  '部位'
 };
 
 function escapeHtml(s) {
