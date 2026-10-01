@@ -2591,9 +2591,8 @@ function updateTemplateFillPreview() {
     html = html.replace(new RegExp(escaped, 'g'), '<span class="filled">' + escapeHtml(val) + '</span>');
   }
   if (html === prompt.replace(/\{([^{}]+)\}/g, function(m) { return m; })) {
-    // 没替换过，提示空
-    document.getElementById('templateFillPreview').innerHTML =
-      '<span class="empty-hint">填写变量后实时预览...</span>';
+    // 没替换过，显示原始提示词（带占位符）
+    document.getElementById('templateFillPreview').innerHTML = escapeHtml(prompt);
   } else {
     document.getElementById('templateFillPreview').innerHTML = html;
   }
