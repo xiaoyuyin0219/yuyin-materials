@@ -232,9 +232,20 @@ class BridgeHandler(BaseHTTPRequestHandler):
                         "error": str(e)
                     })
 
-            # 复制路径到剪贴板
-            clipboard_text = "\n".join(paths)
+            # 剪映文件选择框只接受文件名，不接受完整路径
+            # 所以只复制文件名到剪贴板
+            filenames = [os.path.basename(p) for p in paths]
+            clipboard_text = "\n".join(filenames)
             clip_ok = set_clipboard(clipboard_text) if paths else False
+
+            # 自动打开文件所在文件夹，方便用户在剪映中导航到正确位置
+            if paths:
+                import subprocess
+                folder = os.path.dirname(paths[0])
+                try:
+                    subprocess.Popen(['explorer', folder])
+                except Exception:
+                    pass
 
             self._json_response(200, {
                 "results": results,
@@ -270,8 +281,18 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 else:
                     results.append({"url": url, "status": "not_found"})
 
-            clipboard_text = "\n".join(paths)
+            filenames = [os.path.basename(p) for p in paths]
+            clipboard_text = "\n".join(filenames)
             clip_ok = set_clipboard(clipboard_text) if paths else False
+
+            # 自动打开文件所在文件夹
+            if paths:
+                import subprocess
+                folder = os.path.dirname(paths[0])
+                try:
+                    subprocess.Popen(['explorer', folder])
+                except Exception:
+                    pass
 
             self._json_response(200, {
                 "results": results,
