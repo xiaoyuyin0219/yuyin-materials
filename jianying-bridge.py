@@ -48,20 +48,54 @@ INDEX_FILE = VIDEO_DIR / ".index.json"
 
 
 def set_clipboard(text):
-    """将文本复制到 Windows 剪贴板"""
+    """将文本复制到 Windows 剪贴板（带重试和返回值检查）"""
+    import time
+    data = text.encode("utf-16-le")
+
+    # OpenClipboard 可能被其他程序占用，重试 5 次
+    for attempt in range(5):
+        if ctypes.windll.user32.OpenClipboard(0):
+            break
+        if attempt < 4:
+            time.sleep(0.1)
+    else:
+        print(f"[!] 剪贴板打开失败（被占用），重试5次均失败")
+        return False
+
     try:
-        ctypes.windll.user32.OpenClipboard(0)
         ctypes.windll.user32.EmptyClipboard()
-        data = text.encode("utf-16-le")
+
+        # GMEM_MOVEABLE(0x0002) | GMEM_ZEROINIT(0x0040) = 0x0042
         h = ctypes.windll.kernel32.GlobalAlloc(0x0042, len(data) + 2)
+        if not h:
+            print(f"[!] GlobalAlloc 失败")
+            return False
+
         p = ctypes.windll.kernel32.GlobalLock(h)
+        if not p:
+            ctypes.windll.kernel32.GlobalFree(h)
+            print(f"[!] GlobalLock 失败")
+            return False
+
         ctypes.cdll.msvcrt.memcpy(p, data, len(data) + 2)
         ctypes.windll.kernel32.GlobalUnlock(h)
-        ctypes.windll.user32.SetClipboardData(13, h)  # 13 = CF_UNICODETEXT
+
+        result = ctypes.windll.user32.SetClipboardData(13, h)  # 13 = CF_UNICODETEXT
+        if not result:
+            ctypes.windll.kernel32.GlobalFree(h)
+            print(f"[!] SetClipboardData 失败")
+            return False
+
         ctypes.windll.user32.CloseClipboard()
+        print(f"[OK] 剪贴板写入成功")
         return True
+
     except Exception as e:
-        print(f"[!] 剪贴板操作失败: {e}")
+        print(f"[!] 剪贴板操作异常: {e}")
+        try:
+            ctypes.windll.user32.CloseClipboard()
+        except Exception:
+            pass
         return False
 
 
@@ -232,18 +266,9 @@ class BridgeHandler(BaseHTTPRequestHandler):
                         "error": str(e)
                     })
 
-            # 复制完整路径到剪贴板（大部分同事可直接粘贴到剪映）
+            # 复制完整路径到剪贴板
             clipboard_text = "\n".join(paths)
             clip_ok = set_clipboard(clipboard_text) if paths else False
-
-            # 同时自动打开文件夹，作为无法粘贴时的兜底方案
-            if paths:
-                import subprocess
-                folder = os.path.dirname(paths[0])
-                try:
-                    subprocess.Popen(['explorer', folder])
-                except Exception:
-                    pass
 
             self._json_response(200, {
                 "results": results,
@@ -281,15 +306,6 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
             clipboard_text = "\n".join(paths)
             clip_ok = set_clipboard(clipboard_text) if paths else False
-
-            # 同时自动打开文件夹
-            if paths:
-                import subprocess
-                folder = os.path.dirname(paths[0])
-                try:
-                    subprocess.Popen(['explorer', folder])
-                except Exception:
-                    pass
 
             self._json_response(200, {
                 "results": results,
