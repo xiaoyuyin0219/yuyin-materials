@@ -2035,7 +2035,7 @@ function transferToJianYing(id, btnEl) {
   }).catch(function(err) {
     console.error('剪映联动失败:', err);
     if (err.message === 'Failed to fetch' || err.message === 'bridge offline') {
-      showToast('请先启动剪映桥接服务（jianying-bridge.py）', true);
+      showToast('剪映桥接服务未启动，请双击"启动剪映桥接.vbs"后再试', true);
     } else {
       showToast('剪映联动失败: ' + err.message, true);
     }
