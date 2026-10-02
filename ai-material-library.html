@@ -2018,9 +2018,9 @@ function transferToJianYing(id, btnEl) {
     }
     var result = data.results[0];
     if (data.cached > 0) {
-      showToast('已缓存，文件名已复制，文件夹已打开');
+      showToast('已缓存，路径已复制，文件夹已打开');
     } else {
-      showToast('视频已就绪，文件名已复制，文件夹已打开');
+      showToast('视频已就绪，路径已复制，文件夹已打开');
     }
     if (btnEl) {
       btnEl.innerHTML = '&#10004; 已复制';

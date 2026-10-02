@@ -232,13 +232,11 @@ class BridgeHandler(BaseHTTPRequestHandler):
                         "error": str(e)
                     })
 
-            # 剪映文件选择框只接受文件名，不接受完整路径
-            # 所以只复制文件名到剪贴板
-            filenames = [os.path.basename(p) for p in paths]
-            clipboard_text = "\n".join(filenames)
+            # 复制完整路径到剪贴板（大部分同事可直接粘贴到剪映）
+            clipboard_text = "\n".join(paths)
             clip_ok = set_clipboard(clipboard_text) if paths else False
 
-            # 自动打开文件所在文件夹，方便用户在剪映中导航到正确位置
+            # 同时自动打开文件夹，作为无法粘贴时的兜底方案
             if paths:
                 import subprocess
                 folder = os.path.dirname(paths[0])
@@ -281,11 +279,10 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 else:
                     results.append({"url": url, "status": "not_found"})
 
-            filenames = [os.path.basename(p) for p in paths]
-            clipboard_text = "\n".join(filenames)
+            clipboard_text = "\n".join(paths)
             clip_ok = set_clipboard(clipboard_text) if paths else False
 
-            # 自动打开文件所在文件夹
+            # 同时自动打开文件夹
             if paths:
                 import subprocess
                 folder = os.path.dirname(paths[0])
